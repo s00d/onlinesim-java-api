@@ -1,0 +1,14 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Gradle
+.gradle/
+build/
+out/
+
+# Special exception for my test main class used during development
+src/main/java/ru/onlinesim/LocalTest.java
+
+.DS_Store
+.env

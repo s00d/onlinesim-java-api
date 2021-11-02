@@ -1,0 +1,175 @@
+//plugins {
+//	id "com.adarshr.test-logger" version "3.0.0"
+//}
+
+apply plugin: "java"
+apply plugin: "idea"
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+
+
+sourceCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation "com.google.code.gson:gson:2.8.2"
+	implementation "org.apache.httpcomponents:httpcore:4.4.9"
+	implementation "org.apache.httpcomponents:httpclient:4.5.5"
+	implementation 'org.jetbrains:annotations:16.0.2'
+	implementation 'io.github.cdimascio:java-dotenv:5.2.2'
+
+	testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
+	testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.1.0'
+
+	testImplementation "org.mockito:mockito-core:2.23.0"
+	testImplementation "org.hamcrest:hamcrest-library:1.3"
+	testImplementation "nl.jqno.equalsverifier:equalsverifier:3.4.1"
+	testImplementation "org.slf4j:slf4j-simple:1.7.25"
+	testImplementation "com.pszymczyk.consul:embedded-consul:1.0.2"
+}
+
+if (JavaVersion.current().isJava9Compatible()) {
+	tasks.withType(JavaCompile).all { options.compilerArgs.addAll(['--release', '8']) }
+}
+
+test {
+	enableAssertions = true
+	useJUnitPlatform()
+
+	testLogging {
+		exceptionFormat 'full'
+		events TestLogEvent.FAILED,
+				TestLogEvent.PASSED,
+				TestLogEvent.SKIPPED,
+				TestLogEvent.STARTED,
+				TestLogEvent.STANDARD_ERROR,
+				TestLogEvent.STANDARD_OUT
+		// Set to true if you want to see output from test
+
+
+		exceptionFormat TestExceptionFormat.FULL
+		showExceptions true
+		showCauses true
+		showStackTraces true
+
+		debug {
+			events TestLogEvent.STARTED,
+					TestLogEvent.FAILED,
+					TestLogEvent.PASSED,
+					TestLogEvent.SKIPPED,
+					TestLogEvent.STANDARD_ERROR,
+					TestLogEvent.STANDARD_OUT
+			exceptionFormat TestExceptionFormat.FULL
+		}
+		info.events = debug.events
+		info.exceptionFormat = debug.exceptionFormat
+
+		afterSuite { desc, result ->
+			if (!desc.parent) { // will match the outermost suite
+				def output = "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
+				def startItem = '|  ', endItem = '  |'
+				def repeatLength = startItem.length() + output.length() + endItem.length()
+				println('\n' + ('-' * repeatLength) + '\n' + startItem + output + endItem + '\n' + ('-' * repeatLength))
+			}
+		}
+	}
+}
+
+// --------------------------------------------------------------
+// Tasks for publishing into Maven Central
+
+task sourcesJar(type: Jar) {
+	classifier = 'sources'
+	from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar) {
+	classifier = 'javadoc'
+	from javadoc
+}
+
+artifacts {
+	archives jar
+	archives sourcesJar
+	archives javadocJar
+}
+
+//testlogger {
+//	theme 'standard'
+//	showExceptions true
+//	showStackTraces true
+//	showFullStackTraces false
+//	showCauses true
+//	slowThreshold 2000
+//	showSummary true
+//	showSimpleNames false
+//	showPassed true
+//	showSkipped true
+//	showFailed true
+//	showStandardStreams false
+//	showPassedStandardStreams true
+//	showSkippedStandardStreams true
+//	showFailedStandardStreams true
+//	logLevel 'lifecycle'
+//}
+
+def doUploadArchives = project.hasProperty('sonatypeUsername') && project.hasProperty('sonatypePassword')
+if (doUploadArchives) {
+	group = "ru.onlinesim"
+	archivesBaseName = "OnlineSimApi"
+	version = "1.0.0"
+
+	signing {
+		sign configurations.archives
+	}
+
+	uploadArchives {
+		repositories {
+			mavenDeployer {beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+				repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+					authentication(userName: sonatypeUsername, password: sonatypePassword)
+				}
+
+				snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+					authentication(userName: sonatypeUsername, password: sonatypePassword)
+				}
+
+				pom.project {
+					name 'Ecwid Consul API'
+					packaging 'jar'
+					description 'Java client for OnlineSIM API (http://onlinesim.ru)'
+					url 'https://github.com/s00d/onlinesim-java-api'
+
+					scm {
+						connection 'scm:git:git@github.com:s00d/onlinesim-java-api.git'
+						developerConnection 'scm:git:git@github.com:s00d/onlinesim-java-api.git'
+						url 'https://github.com/s00d/onlinesim-java-api.git'
+					}
+
+					licenses {
+						license {
+							name 'The Apache License, Version 2.0'
+							url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+						}
+					}
+
+					developers {
+						developer {
+							id 's00d'
+							name 'Pavel Kuzmin'
+							email 'Virus191288@gmail.com'
+						}
+					}
+				}
+			}
+		}
+	}
+}
