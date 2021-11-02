@@ -36,7 +36,7 @@ public class GetUser extends BaseApi {
 
 
 		JsonObject profile = httpResponse.get("profile").getAsJsonObject();
-		System.out.printf(profile.toString());
+//		System.out.printf(profile.toString());
 
 		return new Profile(
 				Integer.parseInt(profile.get("id").getAsString()),

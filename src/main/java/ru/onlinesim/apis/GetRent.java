@@ -104,9 +104,10 @@ public class GetRent extends BaseApi {
 		return list.get(tzid);
 	}
 
-	public RentItem extend(int tzid) throws OperationException, TransportException, RequestException {
+	public RentItem extend(int tzid, int days) throws OperationException, TransportException, RequestException {
 		Map<String,Object> map = new HashMap<String,Object>();
 		map.put("tzid", tzid);
+		map.put("days", days);
 
 		JsonObject httpResponse = rawClient.makeGetRequest("/api/rent/extendRentState.php", map).getAsJsonObject().get("item").getAsJsonObject();
 

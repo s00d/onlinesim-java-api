@@ -8,7 +8,7 @@ import ru.onlinesim.apis.GetProxy;
 import ru.onlinesim.apis.GetRent;
 import ru.onlinesim.apis.GetUser;
 public class OnlineSimApi {
-	private final String lang;
+	private String lang;
 	private String apikey;
 	private int dev_id;
 
@@ -44,6 +44,22 @@ public class OnlineSimApi {
 
 	public GetProxy proxy() {
 		return new GetProxy(apikey, dev_id, lang);
+	}
+
+	public String getApiKey() {
+		return this.apikey;
+	}
+
+	public void setApiKey(String apikey) {
+		this.apikey = apikey;
+	}
+
+	public String getLang() {
+		return this.lang;
+	}
+
+	public void setLang(String lang) {
+		this.lang = lang;
 	}
 
 }

@@ -140,17 +140,17 @@ public class RawClient {
 
 		String params = MapQuery.urlEncodeUTF8(urlParams);
 
-		System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//		System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
 		String url = prepareUrl(agentAddress + endpoint);
 
-		System.out.println(url + '?' + params);
+//		System.out.println(url + '?' + params);
 
 		HttpRequest request = HttpRequest.Builder.newBuilder().setUrl(url + '?' + params).build();
 
 		HttpResponse httpResponse = httpTransport.makeGetRequest(request);
 
-		System.out.println(httpResponse.getContent());
+//		System.out.println(httpResponse.getContent());
 
 		if (httpResponse.getStatusCode() == 200) {
 			JsonElement pars = new JsonParser().parse(httpResponse.getContent());
