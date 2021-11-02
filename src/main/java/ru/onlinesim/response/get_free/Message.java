@@ -1,5 +1,8 @@
 package ru.onlinesim.response.get_free;
 
+/**
+ * Message resp
+ */
 public class Message {
 	private final String text;
 	private final String in_number;

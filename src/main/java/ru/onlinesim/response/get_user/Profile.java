@@ -4,6 +4,9 @@ import org.jetbrains.annotations.Nullable;
 
 import ru.onlinesim.response.Base;
 
+/**
+ * Profile resp
+ */
 public class Profile extends Base {
 	private final int id;
 	private final String hash_id;

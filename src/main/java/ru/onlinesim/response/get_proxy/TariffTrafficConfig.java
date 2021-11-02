@@ -2,6 +2,9 @@ package ru.onlinesim.response.get_proxy;
 
 import java.util.HashMap;
 
+/**
+ * TariffTrafficConfig resp
+ */
 public class TariffTrafficConfig {
 	private final String name;
 	private final HashMap<String, String> cities;

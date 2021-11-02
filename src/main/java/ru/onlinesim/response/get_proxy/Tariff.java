@@ -1,5 +1,8 @@
 package ru.onlinesim.response.get_proxy;
 
+/**
+ * Tariff resp
+ */
 public class Tariff {
 	private final TariffDays days;
 	private final TariffTraffic traffic;

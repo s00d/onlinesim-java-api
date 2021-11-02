@@ -1,5 +1,8 @@
 package ru.onlinesim.response.get_proxy;
 
+/**
+ * Proxy resp
+ */
 public class Proxy {
 	private final int tzid;
 	private final String type;

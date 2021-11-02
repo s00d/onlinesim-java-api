@@ -2,6 +2,9 @@ package ru.onlinesim.response.get_proxy;
 
 import java.util.HashMap;
 
+/**
+ * TariffDaysConfig resp
+ */
 public class TariffDaysConfig {
 	private final String type;
 	private final Boolean enabled;

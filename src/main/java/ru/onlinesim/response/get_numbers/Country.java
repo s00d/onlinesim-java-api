@@ -1,5 +1,8 @@
 package ru.onlinesim.response.get_numbers;
 
+/**
+ * Country resp
+ */
 public class Country {
 	private final String name;
 	private final String original;

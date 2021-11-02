@@ -2,6 +2,9 @@ package ru.onlinesim.response.get_rent;
 
 import java.util.HashMap;
 
+/**
+ * Tariff resp
+ */
 public class Tariff {
 	private final int code;
 	private final boolean enabled;

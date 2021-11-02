@@ -19,6 +19,9 @@ import ru.onlinesim.response.get_numbers.Tariff;
 import ru.onlinesim.transport.TransportException;
 
 
+/**
+ * GetNumbers api
+ */
 public class GetNumbers extends BaseApi {
 	public GetNumbers(String apikey, int dev_id, String lang) {
 		super(apikey, dev_id, lang);

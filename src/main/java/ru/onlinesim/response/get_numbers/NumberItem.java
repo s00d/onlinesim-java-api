@@ -4,6 +4,9 @@ import java.util.ArrayList;
 
 import ru.onlinesim.exceptions.RequestException;
 
+/**
+ * NumberItem resp
+ */
 public class NumberItem {
 	private final int tzid;
 	private final String response;

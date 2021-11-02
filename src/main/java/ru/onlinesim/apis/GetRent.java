@@ -59,6 +59,9 @@ class JSONToNumber {
 	}
 }
 
+/**
+ * GetRent api
+ */
 public class GetRent extends BaseApi {
 	public GetRent(String apikey, int dev_id, String lang) {
 		super(apikey, dev_id, lang);

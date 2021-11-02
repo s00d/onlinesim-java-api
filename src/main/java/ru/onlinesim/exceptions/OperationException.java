@@ -2,6 +2,9 @@ package ru.onlinesim.exceptions;
 
 import ru.onlinesim.transport.HttpResponse;
 
+/**
+ * OperationException
+ */
 public final class OperationException extends Exception {
 
 	private final int statusCode;

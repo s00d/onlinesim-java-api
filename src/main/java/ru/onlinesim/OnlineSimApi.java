@@ -7,6 +7,10 @@ import ru.onlinesim.apis.GetNumbers;
 import ru.onlinesim.apis.GetProxy;
 import ru.onlinesim.apis.GetRent;
 import ru.onlinesim.apis.GetUser;
+
+/**
+ * general loader
+ */
 public class OnlineSimApi {
 	private String lang;
 	private String apikey;

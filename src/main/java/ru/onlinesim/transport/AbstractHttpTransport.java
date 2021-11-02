@@ -16,6 +16,9 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.StreamSupport;
 
+/**
+ * AbstractHttpTransport
+ */
 public abstract class AbstractHttpTransport implements HttpTransport {
 
 	private static final Logger log = Logger.getLogger(AbstractHttpTransport.class.getName());

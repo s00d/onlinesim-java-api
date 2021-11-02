@@ -5,6 +5,9 @@ import com.google.gson.annotations.SerializedName;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Balance resp
+ */
 public class Balance {
 	private final float balance;
 	private final float zbalance;

@@ -1,7 +1,8 @@
 package ru.onlinesim.response.get_numbers;
 
-import java.util.ArrayList;
-
+/**
+ * NumberItemMessage resp
+ */
 public class NumberItemMessage {
 	private final String from;
 	private final String text;

@@ -15,6 +15,9 @@ import ru.onlinesim.response.get_free.Message;
 import ru.onlinesim.response.get_free.Number;
 import ru.onlinesim.transport.TransportException;
 
+/**
+ * GetFree api
+ */
 public class GetFree extends BaseApi {
 	public GetFree(String apikey, int dev_id, String lang) {
 		super(apikey, dev_id, lang);

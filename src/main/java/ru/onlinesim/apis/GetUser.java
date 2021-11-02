@@ -13,6 +13,9 @@ import ru.onlinesim.response.get_user.Balance;
 import ru.onlinesim.response.get_user.Profile;
 import ru.onlinesim.transport.TransportException;
 
+/**
+ * GetUser api
+ */
 public class GetUser extends BaseApi {
 	public GetUser(String apikey, int dev_id, String lang) {
 		super(apikey, dev_id, lang);

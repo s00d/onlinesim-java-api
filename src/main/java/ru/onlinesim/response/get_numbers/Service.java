@@ -1,5 +1,8 @@
 package ru.onlinesim.response.get_numbers;
 
+/**
+ * Service resp
+ */
 public class Service {
 	private final int id;
 	private final int count;

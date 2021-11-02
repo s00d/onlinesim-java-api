@@ -12,3 +12,5 @@ src/main/java/ru/onlinesim/LocalTest.java
 
 .DS_Store
 .env
+
+gradle.properties

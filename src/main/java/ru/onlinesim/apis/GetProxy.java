@@ -49,6 +49,9 @@ class JSONToProxy {
 	}
 }
 
+/**
+ * GetProxy api
+ */
 public class GetProxy extends BaseApi {
 	public GetProxy(String apikey, int dev_id, String lang) {
 		super(apikey, dev_id, lang);

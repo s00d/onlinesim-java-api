@@ -3,6 +3,9 @@ package ru.onlinesim.transport;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * HttpRequest
+ */
 public final class HttpRequest {
 
 	private final String url;
@@ -38,6 +41,9 @@ public final class HttpRequest {
 		return binaryContent;
 	}
 
+	/**
+	 * Builder
+	 */
 	// ---------------------------------------
 	// Builder
 	public static final class Builder {

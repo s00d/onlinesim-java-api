@@ -3,6 +3,9 @@ package ru.onlinesim.response.get_proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+/**
+ * TariffDays resp
+ */
 public class TariffDays {
 	private final HashMap<String, TariffDaysConfig> config;
 	private final ArrayList<String> operators;

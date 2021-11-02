@@ -2,6 +2,9 @@ package ru.onlinesim.exceptions;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * errors
+ */
 public enum BaseTypeError {
 	UNKNOWN("", "Unknown type error."),
 	NO_BALANCE("NO_BALANCE", "There is no money in the account."),

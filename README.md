@@ -1,5 +1,7 @@
 # Onlinesim JAVA API
 
+Wrapper for automatic reception of SMS-messages by onlinesim.ru
+
 ## Installation
 
 Require this package in your maven:

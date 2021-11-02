@@ -4,6 +4,9 @@ import org.jetbrains.annotations.Nullable;
 
 import ru.onlinesim.transport.RawClient;
 
+/**
+ * BaseApi api
+ */
 public class BaseApi {
 	protected final RawClient rawClient;
 

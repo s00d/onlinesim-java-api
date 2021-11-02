@@ -2,6 +2,9 @@ package ru.onlinesim.exceptions;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * RequestException
+ */
 public class RequestException extends Exception {
 	/**
 	 * Error type by server response.

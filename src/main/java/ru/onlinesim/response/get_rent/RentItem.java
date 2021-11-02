@@ -6,6 +6,9 @@ import java.util.HashMap;
 
 import ru.onlinesim.exceptions.RequestException;
 
+/**
+ * RentItem rep
+ */
 public class RentItem {
 	private final int tzid;
 	private final int status;

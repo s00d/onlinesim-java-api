@@ -1,5 +1,8 @@
 package ru.onlinesim.response.get_rent;
 
+/**
+ * RentItemMessage resp
+ */
 public class RentItemMessage {
 	private final int id;
 	private final String service;

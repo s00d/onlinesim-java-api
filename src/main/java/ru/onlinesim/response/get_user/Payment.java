@@ -1,5 +1,8 @@
 package ru.onlinesim.response.get_user;
 
+/**
+ * Payment resp
+ */
 public class Payment {
 	private final float payment;
 	private final float spent;

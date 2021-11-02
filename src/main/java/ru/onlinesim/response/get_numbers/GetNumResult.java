@@ -1,5 +1,8 @@
 package ru.onlinesim.response.get_numbers;
 
+/**
+ * GetNumResult resp
+ */
 public class GetNumResult {
 	private final int tzid;
 	private final String number;

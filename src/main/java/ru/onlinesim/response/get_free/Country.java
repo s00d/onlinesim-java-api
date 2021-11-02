@@ -1,5 +1,8 @@
 package ru.onlinesim.response.get_free;
 
+/**
+ * Country resp
+ */
 public class Country {
 	private final int country;
 	private final String country_text;

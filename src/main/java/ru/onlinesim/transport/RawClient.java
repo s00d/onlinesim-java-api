@@ -11,106 +11,18 @@ import ru.onlinesim.exceptions.RequestException;
 
 import java.util.Map;
 
+/**
+ * RawClient request
+ */
 public class RawClient {
 	private String lang = "en";
 	private String apikey = "";
 	private int dev_id = 0;
 
 	public static final String DEFAULT_HOST = "onlinesim.ru";
-//	public static final int DEFAULT_PORT = 8500;
-//	public static final String DEFAULT_PATH = "";
-//
-//	// one real HTTP client for all instances
-//	private static final HttpTransport DEFAULT_HTTP_TRANSPORT = new DefaultHttpTransport();
 
 	private final HttpTransport httpTransport;
 	private final String agentAddress;
-
-//	public static final class Builder {
-//		private String agentHost;
-//		private int agentPort;
-//		private String agentPath;
-//		private HttpTransport httpTransport;
-//
-//		public static RawClient.Builder builder() {
-//			return new RawClient.Builder();
-//		}
-//
-//		private Builder() {
-//			this.agentHost = DEFAULT_HOST;
-//			this.agentPort = DEFAULT_PORT;
-//			this.agentPath = DEFAULT_PATH;
-//			this.httpTransport = DEFAULT_HTTP_TRANSPORT;
-//		}
-//
-//		public Builder setHost(String host) {
-//			this.agentHost = host;
-//			return this;
-//		}
-//
-//		public Builder setPort(int port) {
-//			this.agentPort = port;
-//			return this;
-//		}
-//
-//		public Builder setPath(String path) {
-//			this.agentPath = path;
-//			return this;
-//		}
-//
-//		public Builder setTlsConfig(TLSConfig tlsConfig) throws TransportException {
-//			this.httpTransport = new DefaultHttpsTransport(tlsConfig);
-//			return this;
-//		}
-//
-//		public Builder setHttpClient(HttpClient httpClient) {
-//			this.httpTransport = new DefaultHttpTransport(httpClient);
-//			return this;
-//		}
-//
-//		public RawClient build() {
-//			return new RawClient(httpTransport, agentHost, agentPath);
-//		}
-//	}
-
-//	public RawClient() {
-//		this(DEFAULT_HOST);
-//	}
-//
-//	public RawClient(TLSConfig tlsConfig) throws TransportException {
-//		this(DEFAULT_HOST, tlsConfig);
-//	}
-//	public RawClient(String agentHost) {
-//		this(agentHost, DEFAULT_PORT);
-//	}
-//
-//	public RawClient(String agentHost, TLSConfig tlsConfig) throws TransportException {
-//		this(agentHost, DEFAULT_PORT, tlsConfig);
-//	}
-//
-//	public RawClient(String agentHost, int agentPort) {
-//		this(DEFAULT_HTTP_TRANSPORT, agentHost, agentPort, DEFAULT_PATH);
-//	}
-//
-//	public RawClient(HttpClient httpClient) {
-//		this(DEFAULT_HOST, httpClient);
-//	}
-////
-//	public RawClient(String agentHost, HttpClient httpClient) {
-//		this(new DefaultHttpTransport(httpClient), agentHost, DEFAULT_PORT, DEFAULT_PATH);
-//	}
-//
-//	public RawClient(String agentHost, int agentPort, HttpClient httpClient) {
-//		this(new DefaultHttpTransport(httpClient), agentHost, agentPort, DEFAULT_PATH);
-//	}
-//
-//	public RawClient(String agentHost, int agentPort, TLSConfig tlsConfig) throws TransportException {
-//		this(new DefaultHttpsTransport(tlsConfig), agentHost, agentPort, DEFAULT_PATH);
-//	}
-//
-//	public RawClient(HttpClient httpClient, String host, int port, String path) {
-//		this(new DefaultHttpTransport(httpClient), host, port, path);
-//	}
 
 	public RawClient(String apikey, int dev_id, String lang) {
 		this(new DefaultHttpTransport(), DEFAULT_HOST, "");

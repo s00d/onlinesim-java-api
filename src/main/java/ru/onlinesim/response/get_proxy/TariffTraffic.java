@@ -3,6 +3,9 @@ package ru.onlinesim.response.get_proxy;
 import java.util.HashMap;
 
 
+/**
+ * TariffTraffic resp
+ */
 public class TariffTraffic {
 	private final HashMap<String, TariffTrafficConfig> config;
 	private final HashMap<String, Integer> price;

@@ -1,12 +1,14 @@
-//plugins {
-//	id "com.adarshr.test-logger" version "3.0.0"
-//}
+plugins {
+	id 'java-gradle-plugin'
+	id 'maven-publish'
+	id 'com.gradle.plugin-publish' version '0.14.0'
+	id 'signing'
+}
 
 apply plugin: "java"
 apply plugin: "idea"
 apply plugin: 'maven'
 apply plugin: 'signing'
-
 
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
@@ -34,6 +36,34 @@ dependencies {
 	testImplementation "org.slf4j:slf4j-simple:1.7.25"
 	testImplementation "com.pszymczyk.consul:embedded-consul:1.0.2"
 }
+
+group = "ru.onlinesim"
+archivesBaseName = "OnlineSimApi"
+version = "1.0.0"
+
+pluginBundle {
+	website = 'http://onlinesim.ru/'
+	vcsUrl = 'https://github.com/s00d/onlinesim-java-api'
+	tags = ['onlinesim', 'api']
+}
+
+gradlePlugin {
+	plugins {
+		greetingsPlugin {
+			id = 'ru.onlinesim'
+			displayName = 'OnlineSimApi'
+			description = 'Wrapper for automatic reception of SMS-messages by onlinesim.ru'
+			implementationClass = 'ru.onlinesim.OnlineSimApi'
+		}
+	}
+}
+
+//signing {
+//	def signingKey = findProperty("signingKey")
+//	def signingPassword = findProperty("signingPassword")
+//	useInMemoryPgpKeys(signingKey, signingPassword)
+//	sign stuffZip
+//}
 
 if (JavaVersion.current().isJava9Compatible()) {
 	tasks.withType(JavaCompile).all { options.compilerArgs.addAll(['--release', '8']) }

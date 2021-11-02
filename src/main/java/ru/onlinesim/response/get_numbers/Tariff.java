@@ -3,7 +3,9 @@ package ru.onlinesim.response.get_numbers;
 import java.util.HashMap;
 
 
-
+/**
+ * Tariff resp
+ */
 public class Tariff {
 	private final HashMap<String, Country> countries;
 	private final HashMap<String, Service> favorites;

@@ -2,6 +2,9 @@ package ru.onlinesim.response.get_free;
 
 import java.math.BigInteger;
 
+/**
+ * Number resp
+ */
 public class Number {
 	private final BigInteger number;
 	private final int country;
@@ -25,6 +28,9 @@ public class Number {
 		return country;
 	}
 
+	/**
+	 * @return String
+	 */
 	public String getUpdated_at() {
 		return updated_at;
 	}
