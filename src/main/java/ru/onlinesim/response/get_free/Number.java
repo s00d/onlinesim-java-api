@@ -20,10 +20,16 @@ public class Number {
 		this.full_number = full_number;
 	}
 
+	/**
+	 * @return BigInteger
+	 */
 	public BigInteger getNumber() {
 		return number;
 	}
 
+	/**
+	 * @return int
+	 */
 	public int getCountry() {
 		return country;
 	}
@@ -35,10 +41,16 @@ public class Number {
 		return updated_at;
 	}
 
+	/**
+	 * @return String
+	 */
 	public String getFull_number() {
 		return full_number;
 	}
 
+	/**
+	 * @return String
+	 */
 	public String getCountry_text() {
 		return country_text;
 	}
