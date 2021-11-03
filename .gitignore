@@ -14,3 +14,4 @@ src/main/java/ru/onlinesim/LocalTest.java
 .env
 
 gradle.properties
+settings.xml
