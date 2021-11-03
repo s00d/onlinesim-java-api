@@ -161,7 +161,7 @@ artifacts {
 
 if (project.hasProperty('release')) {
 	println 'Using release profile for building ' + project.getName()
-	apply from: 'scripts/profile-release.gradle'
+	apply from: 'gradle/profile-release.gradle'
 }
 
 
