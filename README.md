@@ -7,11 +7,11 @@ Wrapper for automatic reception of SMS-messages by onlinesim.ru
 Require this package in your maven:
 
 ```xml
-<dependecy>
+<dependency>
   <groupId>ru.onlinesim</groupId>
-  <artifactId>OnlineSimApi</artifactId>
-  <version>1.0.0</version>
-</dependecy>
+  <artifactId>onlinesim-api</artifactId>
+  <version>1.0.3</version>
+</dependency>
 ```
 
 or gradle
@@ -19,7 +19,7 @@ or gradle
 ```gradle
 dependencies {
 	// ....
-	implementation "ru.onlinesim.OnlineSimApi:gson:1.0.0"
+	implementation "ru.onlinesim.OnlineSimApi:gson:1.0.3"
 ```
 
 Require this package in your APP:
