@@ -1,3 +1,12 @@
+buildscript {
+	repositories {
+		jcenter()
+	}
+	dependencies {
+		classpath("net.researchgate:gradle-release:2.6.0")
+	}
+}
+
 plugins {
 	id 'java-gradle-plugin'
 	id 'maven-publish'
@@ -14,7 +23,10 @@ apply plugin: 'signing'
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
-
+group = "ru.onlinesim"
+archivesBaseName = "OnlineSimApi"
+description = 'Java client for OnlineSIM API (http://onlinesim.ru)'
+version = project['version']
 sourceCompatibility = 1.8
 
 repositories {
@@ -37,10 +49,6 @@ dependencies {
 	testImplementation "org.slf4j:slf4j-simple:1.7.25"
 	testImplementation "com.pszymczyk.consul:embedded-consul:1.0.2"
 }
-
-group = "ru.onlinesim"
-archivesBaseName = "OnlineSimApi"
-version = "1.0.0"
 
 pluginBundle {
 	website = 'http://onlinesim.ru/'
@@ -151,82 +159,9 @@ artifacts {
 //	logLevel 'lifecycle'
 //}
 
-
-
-def doUploadArchives = project.hasProperty('sonatypeUsername') && project.hasProperty('sonatypePassword')
-if (doUploadArchives) {
-	publishing {
-		publications {
-			mavenJava(MavenPublication) {
-				from(components.java)
-			}
-		}
-	}
-	nexusPublishing {
-		repositories {
-			sonatype {
-				stagingProfileId = '52037283da2b4f'
-				//packageGroup = "com.fabrizioiacobucci.android"
-				username.set(sonatypeUsername) // defaults to project.properties["myNexusUsername"]
-				password.set(sonatypePassword) // defaults to project.properties["myNexusPassword"]
-				nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-				snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-			}
-		}
-	}
+if (project.hasProperty('release')) {
+	println 'Using release profile for building ' + project.getName()
+	apply from: 'scripts/profile-release.gradle'
 }
 
 
-//def doUploadArchives = project.hasProperty('sonatypeUsername') && project.hasProperty('sonatypePassword')
-//if (doUploadArchives) {
-//	group = "ru.onlinesim"
-//	archivesBaseName = "OnlineSimApi"
-//	version = "1.0.0"
-//
-//	signing {
-//		sign configurations.archives
-//	}
-//
-//	uploadArchives {
-//		repositories {
-//			mavenDeployer {beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-//
-//				repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
-//					authentication(userName: sonatypeUsername, password: sonatypePassword)
-//				}
-//
-//				snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
-//					authentication(userName: sonatypeUsername, password: sonatypePassword)
-//				}
-//
-//				pom.project {
-//					name 'OnlineSIM API'
-//					packaging 'jar'
-//					description 'Java client for OnlineSIM API (http://onlinesim.ru)'
-//					url 'https://github.com/s00d/onlinesim-java-api'
-//
-//					scm {
-//						connection 'scm:git:git@github.com:s00d/onlinesim-java-api.git'
-//						developerConnection 'scm:git:git@github.com:s00d/onlinesim-java-api.git'
-//						url 'https://github.com/s00d/onlinesim-java-api.git'
-//					}
-//
-//					licenses {
-//						license {
-//							name 'The Apache License, Version 2.0'
-//							url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-//						}
-//					}
-//
-//					developers {
-//						developer {
-//							id 's00d'
-//							name 'Pavel Kuzmin'
-//							email 'Virus191288@gmail.com'
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
-//}
