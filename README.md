@@ -4,7 +4,10 @@ Wrapper for automatic reception of SMS-messages by onlinesim.ru
 
 ## Installation
 
-Require this package in your maven:
+
+Require this package:
+
+[Maven](https://mvnrepository.com/artifact/ru.onlinesim/onlinesim-api)
 
 ```xml
 <dependency>
@@ -13,6 +16,8 @@ Require this package in your maven:
   <version>1.0.3</version>
 </dependency>
 ```
+
+[Gradle](https://plugins.gradle.org/plugin/ru.onlinesim.OnlineSimApi)
 
 Using the plugins DSL:
 
