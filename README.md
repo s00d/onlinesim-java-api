@@ -70,18 +70,16 @@ If you have any problems, please create Issues [here](https://github.com/s00d/on
 import ru.onlinesim.OnlineSimApi;
 import ru.onlinesim.error.base.OnlineSimApiBaseException;
 
-import java.math.BigDecimal;
-
 public class Run {
   public static void main(String[] args) {
     try {
-      	OnlineSimApi loader = new OnlineSimApi(APIKEY);
+	OnlineSimApi loader = new OnlineSimApi(APIKEY);
 	GetUser user = loader.user();
 	Balance balance = user.balance();
-      // print info about score
-      System.out.println(balance.toString());
+	// print info about score
+	System.out.println(balance.toString());
     } catch (BaseException e) {
-      System.out.println(e.getMessage());
+	System.out.println(e.getMessage());
     }
   }
 }
