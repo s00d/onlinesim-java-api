@@ -7,7 +7,7 @@ Wrapper for automatic reception of SMS-messages by onlinesim.ru
 
 Require this package:
 
-[Maven](https://mvnrepository.com/artifact/ru.onlinesim/onlinesim-api)
+[Maven](https://mvnrepository.com/artifact/ru.onlinesim/onlinesim-api/latest)
 
 ```xml
 <dependency>
