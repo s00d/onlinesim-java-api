@@ -14,12 +14,29 @@ Require this package in your maven:
 </dependency>
 ```
 
-or gradle
+Using the plugins DSL:
 
 ```gradle
-dependencies {
-	// ....
-	implementation "ru.onlinesim.OnlineSimApi:gson:1.0.3"
+plugins {
+  id "ru.onlinesim.OnlineSimApi" version "1.0.3"
+}
+```
+
+Using legacy plugin application:
+
+```gradle
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "ru.onlinesim:onlinesim-api:1.0.3"
+  }
+}
+
+apply plugin: "ru.onlinesim.OnlineSimApi"
 ```
 
 Require this package in your APP:
