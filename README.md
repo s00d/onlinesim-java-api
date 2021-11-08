@@ -75,13 +75,9 @@ import java.math.BigDecimal;
 public class Run {
   public static void main(String[] args) {
     try {
-      	OnlineSimApi loader = new OnlineSimApi(APIKEY, 0);
-      	System.out.println("Your api-key: " + loader.getApiKey());
-
-		GetUser user = loader.user();
-
-		Balance balance = user.balance();
-
+      	OnlineSimApi loader = new OnlineSimApi(APIKEY);
+	GetUser user = loader.user();
+	Balance balance = user.balance();
       // print info about score
       System.out.println(balance.toString());
     } catch (BaseException e) {
