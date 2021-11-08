@@ -19,7 +19,7 @@ Require this package:
 
 [Gradle](https://plugins.gradle.org/plugin/ru.onlinesim.OnlineSimApi)
 
-Using the plugins DSL:
+Using the [plugins DSL](https://docs.gradle.org/current/userguide/plugins.html#sec:plugins_block):
 
 ```gradle
 plugins {
@@ -27,7 +27,7 @@ plugins {
 }
 ```
 
-Using legacy plugin application:
+Using [legacy plugin application](https://docs.gradle.org/current/userguide/plugins.html#sec:old_plugin_application):
 
 ```gradle
 buildscript {
