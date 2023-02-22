@@ -19,7 +19,7 @@ public class RawClient {
 	private String apikey = "";
 	private int dev_id = 0;
 
-	public static final String DEFAULT_HOST = "onlinesim.ru";
+	public static final String DEFAULT_HOST = "onlinesim.host";
 
 	private final HttpTransport httpTransport;
 	private final String agentAddress;

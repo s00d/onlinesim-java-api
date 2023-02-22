@@ -13,7 +13,7 @@ Require this package:
 <dependency>
   <groupId>ru.onlinesim</groupId>
   <artifactId>onlinesim-api</artifactId>
-  <version>1.0.3</version>
+  <version>1.0.4</version>
 </dependency>
 ```
 
@@ -23,7 +23,7 @@ Using the [plugins DSL](https://docs.gradle.org/current/userguide/plugins.html#s
 
 ```gradle
 plugins {
-  id "ru.onlinesim.OnlineSimApi" version "1.0.3"
+  id "ru.onlinesim.OnlineSimApi" version "1.0.4"
 }
 ```
 
@@ -37,7 +37,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath "ru.onlinesim:onlinesim-api:1.0.3"
+    classpath "ru.onlinesim:onlinesim-api:1.0.4"
   }
 }
 
