@@ -6,12 +6,15 @@
 .gradle/
 build/
 out/
-
-# Special exception for my test main class used during development
-src/main/java/ru/onlinesim/LocalTest.java
+local.properties
+gradle.properties
 
 .DS_Store
 .env
 
-gradle.properties
-settings.xml
+# docs site (standalone package in docs/)
+/docs/node_modules
+/docs/.nuxt
+/docs/.output
+/docs/.data
+/docs/dist
