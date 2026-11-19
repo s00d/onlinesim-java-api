@@ -1,86 +1,28 @@
-# Onlinesim JAVA API
+# onlinesim-java-api
 
-Wrapper for automatic reception of SMS-messages by onlinesim.ru
+[![Maven Central](https://img.shields.io/maven-central/v/ru.onlinesim/onlinesim-api.svg)](https://central.sonatype.com/artifact/ru.onlinesim/onlinesim-api)
+[![CI](https://github.com/s00d/onlinesim-java-api/actions/workflows/ci.yml/badge.svg)](https://github.com/s00d/onlinesim-java-api/actions/workflows/ci.yml)
 
-## Installation
+Java client for the [OnlineSim](https://onlinesim.io) API: SMS numbers, rent, account and free numbers.
+Java 11+, `java.net.http` under the hood, Gson as the only dependency.
 
-
-Require this package:
-
-[Maven](https://mvnrepository.com/artifact/ru.onlinesim/onlinesim-api/latest)
-
-```xml
-<dependency>
-  <groupId>ru.onlinesim</groupId>
-  <artifactId>onlinesim-api</artifactId>
-  <version>1.0.4</version>
-</dependency>
+```groovy
+implementation 'ru.onlinesim:onlinesim-api:2.0.0'
 ```
-
-[Gradle](https://plugins.gradle.org/plugin/ru.onlinesim.OnlineSimApi)
-
-Using the [plugins DSL](https://docs.gradle.org/current/userguide/plugins.html#sec:plugins_block):
-
-```gradle
-plugins {
-  id "ru.onlinesim.OnlineSimApi" version "1.0.4"
-}
-```
-
-Using [legacy plugin application](https://docs.gradle.org/current/userguide/plugins.html#sec:old_plugin_application):
-
-```gradle
-buildscript {
-  repositories {
-    maven {
-      url "https://plugins.gradle.org/m2/"
-    }
-  }
-  dependencies {
-    classpath "ru.onlinesim:onlinesim-api:1.0.4"
-  }
-}
-
-apply plugin: "ru.onlinesim.OnlineSimApi"
-```
-
-Require this package in your APP:
 
 ```java
-import ru.onlinesim.OnlineSimApi;
+import ru.onlinesim.Balance;
+import ru.onlinesim.NumberOrder;
+import ru.onlinesim.OnlineSim;
+
+OnlineSim client = new OnlineSim(System.getenv("ONLINESIM_KEY"));
+
+Balance b = client.user().balance();
+System.out.println("available: " + (b.balance() - b.zbalance()) + " USD");
+
+NumberOrder order = client.numbers().getWithNumber("google", 44);
+System.out.println("enter " + order.number() + " in the app");
+System.out.println("code: " + client.numbers().waitCode(order.tzid()));
 ```
 
-## Documentation
-
-All documentation is in the wiki of this project - **[Documentation](https://github.com/s00d/onlinesim-java-api/wiki)**
-
-## Responses
-
-All responses from the server are described in the folder Responses
-
-## Bugs
-
-If you have any problems, please create Issues [here](https://github.com/s00d/onlinesim-java-api/issues)
-
-<hr/>
-
-### Example
-`
-```java
-import ru.onlinesim.OnlineSimApi;
-import ru.onlinesim.error.base.OnlineSimApiBaseException;
-
-public class Run {
-  public static void main(String[] args) {
-    try {
-	OnlineSimApi loader = new OnlineSimApi(APIKEY);
-	GetUser user = loader.user();
-	Balance balance = user.balance();
-	// print info about score
-	System.out.println(balance.toString());
-    } catch (BaseException e) {
-	System.out.println(e.getMessage());
-    }
-  }
-}
-```
+Documentation: **https://s00d.github.io/onlinesim-java-api/** · Changes: [CHANGELOG.md](CHANGELOG.md) · License: Apache-2.0
