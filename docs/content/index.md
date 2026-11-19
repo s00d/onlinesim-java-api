@@ -9,18 +9,18 @@ Java 11 or newer. HTTP goes through the JDK's `java.net.http.HttpClient`; the on
 
 ::code-group
 ```groovy [Gradle]
-implementation 'ru.onlinesim:onlinesim-api:2.0.0'
+implementation 'ru.onlinesim:onlinesim-api:2.1.0'
 ```
 
 ```kotlin [Gradle (Kotlin)]
-implementation("ru.onlinesim:onlinesim-api:2.0.0")
+implementation("ru.onlinesim:onlinesim-api:2.1.0")
 ```
 
 ```xml [Maven]
 <dependency>
   <groupId>ru.onlinesim</groupId>
   <artifactId>onlinesim-api</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 ::

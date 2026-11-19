@@ -27,7 +27,8 @@ import org.junit.jupiter.api.io.TempDir;
  * Compiles the code examples of README.md and docs/content/*.md against the SDK, so the docs cannot drift from the
  * API. A ```java block counts as an example when it uses {@code client} or has imports; the other blocks are
  * signatures. A block with a class declaration compiles as a file; any other one becomes a method body with
- * {@code client} and {@code tzid} declared unless the block declares them.
+ * {@code client} and {@code tzid} declared unless the block declares them. Examples compile for Java 11, except JUnit
+ * tests (testing.md), which compile for 17 like the JUnit 6 they import.
  */
 class DocsExamplesTest {
     private static final Pattern BLOCK = Pattern.compile("```java[^\\n]*\\n(.*?)```", Pattern.DOTALL);
@@ -53,7 +54,7 @@ class DocsExamplesTest {
                     out,
                     out,
                     "--release",
-                    "11",
+                    example.getValue().contains("org.junit") ? "17" : "11",
                     "-proc:none",
                     "-classpath",
                     System.getProperty("java.class.path"),
