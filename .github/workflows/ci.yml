@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # release.yml runs the same checks before publishing.
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -22,5 +27,22 @@ jobs:
           java-version: ${{ matrix.java }}
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew spotlessCheck --no-daemon
-      # build = javac -Xlint:all -Werror + tests; javadoc runs doclint.
+      # build = javac -Xlint:all -Werror + tests (incl. MockOnlineSim and the docs examples); javadoc runs doclint.
       - run: ./gradlew build javadoc --no-daemon
+
+  smoke-artifact:
+    # Publish to a repository inside build/, check the POM, sources/javadoc jars and class files (major 55),
+    # resolve the artifact from an empty Gradle project and run the README "Testing" example on Java 11.
+    name: smoke from artifact (java 11)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # The last one is the default (builds); 11 runs the example.
+          java-version: |
+            11
+            17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: SMOKE_JAVA_HOME="$JAVA_HOME_11_X64" ./scripts/smoke-artifact.sh

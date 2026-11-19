@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0
+
+### Added
+
+- `MockOnlineSim` (package `ru.onlinesim.mock`): a built-in, in-process fake of the OnlineSim API for testing integrations offline — no network, key, money or clock. `mock.client()` returns a normal `OnlineSim` wired to it (`mock.transport()` is the fake `Transport`). It answers every endpoint the SDK calls like the real backend (HTTP 456 for a wrong key, string/int `response`, decimal-string money, `[]` for empty maps) and keeps balance, operations and rents. Options via `MockOptions` (`apiKey`, `balance`, `prices`, `rentTariffs`, `guardInterval`). Test helpers: `addSms`, `addSmsAfter` (lets `waitCode` run with a no-op sleeper), `failNext`, `failNextTransport`, `setBalance`, `balance`, `operations`, `rents`, `requests`, `reset`. Ships in the main jar, no extra dependency. See the [testing guide](https://s00d.github.io/onlinesim-java-api/testing).
+- Packaging checks in CI: a smoke test that publishes the artifact to a local repository inside `build/`, checks the POM (name, description, url, licenses, scm, developers, Gson as the only dependency), the sources/javadoc jars and class files (major 55), then resolves it from an empty Gradle project and runs the README "Testing" example on Java 11.
+- `.github/workflows/release.yml`: on a `vX.Y.Z` tag runs CI, checks the tag against the version, publishes to Maven Central and creates the GitHub release from this changelog.
+
 ## 2.0.0
 
 A rewrite. The public API changed; see the [docs](https://s00d.github.io/onlinesim-java-api/).
