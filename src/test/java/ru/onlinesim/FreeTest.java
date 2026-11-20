@@ -1,6 +1,7 @@
 package ru.onlinesim;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static ru.onlinesim.Fake.map;
 
@@ -26,6 +27,18 @@ class FreeTest {
         assertEquals("7459608320", list.messages().number());
         assertEquals(44, list.messages().country());
         assertEquals(426, list.messages().total());
+    }
+
+    @Test
+    void listAcceptsNullCountryTextAndCountryOriginal() {
+        Fake f = Fake.client()
+                .json(
+                        "{\"response\":1,\"countries\":[{\"country\":999,\"country_text\":null,\"country_original\":null}],"
+                                + "\"numbers\":[],\"messages\":{\"data\":[]}}");
+        FreeList.Country c = f.client.free().list().countries().get(0);
+        assertEquals(999, c.country());
+        assertNull(c.countryText());
+        assertNull(c.countryOriginal());
     }
 
     @Test

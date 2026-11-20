@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'ru.onlinesim'
-version = '2.1.0'
+version = '2.1.1'
 description = 'Java client for the OnlineSim API: SMS numbers, rent, account and free numbers.'
 
 repositories {

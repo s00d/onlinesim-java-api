@@ -10,6 +10,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 class RentTest {
@@ -44,6 +45,40 @@ class RentTest {
         assertEquals("195895", rent.messages().get(0).code());
         assertEquals(18034680L, rent.timeSeconds());
         assertEquals(1, rent.extension());
+    }
+
+    @Test
+    void decodesTheSpecShapesSumAsANumberOrAStringCode0ForANotifySms() {
+        JsonObject item = list().get(0).getAsJsonObject();
+        item.addProperty("status", 0);
+        item.addProperty("checked", false);
+        item.addProperty("sum", 1.5);
+        item.add(
+                "messages",
+                JsonParser.parseString(
+                        "[{\"id\":2,\"service\":\"notify\",\"text\":\"Messages from this sender are not accepted\","
+                                + "\"code\":0,\"created_at\":\"2026-11-19 10:01:12\"},"
+                                + "{\"id\":1,\"service\":\"Google\",\"text\":\"G-070051\",\"code\":\"070051\",\"created_at\":\"2026-11-19 10:01:00\"}]"));
+        JsonObject got = new JsonObject();
+        got.addProperty("response", 1);
+        got.add("item", item);
+        JsonObject listed = item.deepCopy();
+        listed.addProperty("sum", "2.40");
+        JsonArray arr = new JsonArray();
+        arr.add(listed);
+        JsonObject state = new JsonObject();
+        state.addProperty("response", 1);
+        state.add("list", arr);
+        Fake f = Fake.client().json(got.toString()).json(state.toString());
+        RentItem rent = f.client.rent().get(7, 3);
+        assertEquals(0, rent.status());
+        assertEquals(false, rent.checked());
+        assertEquals(1.5, rent.sum());
+        // the integer 0 of a notify SMS is normalised to the string "0"
+        assertEquals(
+                List.of("0", "070051"),
+                rent.messages().stream().map(RentSms::code).collect(Collectors.toList()));
+        assertEquals(2.4, f.client.rent().stateOne(rent.tzid()).sum());
     }
 
     @Test

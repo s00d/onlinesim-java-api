@@ -25,6 +25,10 @@ final class MockState {
     static final long MOCK_USER_ID = 1;
     /** Seconds an operation stays open, as reported in {@code time}. The mock has no clock, so it never runs down. */
     static final int OPERATION_TIME = 1200;
+    /** Minutes an unconfirmed rent waits for its first SMS ({@code stop_time} = start + this). */
+    static final int RENT_FIRST_SMS_MINUTES = 20;
+    /** Sender of a rent SMS from a prohibited sender: it gets the integer {@code code} 0 and does not confirm the rent. */
+    static final String NOTIFY = "notify";
 
     /** 2026-01-01 00:00:00 UTC. */
     private static final long EPOCH = 1_767_225_600L;
@@ -42,7 +46,7 @@ final class MockState {
 
     /** Total balance incl. the frozen part, mills. */
     long balance;
-    /** Frozen by open operations, mills. */
+    /** Frozen by open operations and unconfirmed rents, mills. */
     long frozen;
 
     final Map<Long, MockOperation> operations = new LinkedHashMap<>();
@@ -150,7 +154,8 @@ final class MockState {
             MockSms sms = new MockSms(service != null ? service : op.service, text, code, 0, null);
             op.messages.add(sms);
             op.status = "TZ_NUM_ANSWER";
-            webhook("receiving_sms", tzid, op.country, op.number, sms);
+            // Activation: `+<digits>`, seconds left, the order time.
+            webhook("receiving_sms", tzid, op.country, op.number, sms, seq, OPERATION_TIME, stamp(op.tzid));
             return true;
         }
         MockRent rent = rents.get(tzid);
@@ -158,7 +163,15 @@ final class MockState {
             long id = nextId();
             MockSms sms = new MockSms(service != null ? service : "other", text, code, id, stamp(id));
             rent.messages.add(sms);
-            webhook("rent_sms", tzid, rent.country, rent.number, sms);
+            if (rent.status == 0 && !NOTIFY.equals(sms.service())) {
+                // The first real SMS confirms the rent: the reservation is charged.
+                frozen -= rent.sumMills;
+                balance -= rent.sumMills;
+                rent.status = 1;
+            }
+            // Rent: full number in digits without `+`, minutes left, the SMS time.
+            long minutesLeft = rent.status == 1 ? rent.days * 24L * 60 : RENT_FIRST_SMS_MINUTES;
+            webhook("rent_sms", tzid, rent.country, rent.country + rent.number, sms, id, minutesLeft, stamp(id));
             return true;
         }
         return false;
@@ -190,9 +203,10 @@ final class MockState {
     }
 
     /** No HTTP call: the mock only records what the backend would have sent. */
-    private void webhook(String type, long tzid, int country, String number, MockSms sms) {
+    private void webhook(
+            String type, long tzid, int country, String number, MockSms sms, long at, long timeLeft, String timeStart) {
         if (webhookUrl == null) return;
-        String time = stamp(seq);
+        String time = stamp(at);
         JsonObject params = new JsonObject();
         params.addProperty("webhook_type", type);
         params.addProperty("operation_id", tzid);
@@ -201,9 +215,9 @@ final class MockState {
         params.addProperty("number", number);
         params.addProperty("sender", sms.service());
         params.addProperty("message", sms.text());
-        params.addProperty("code", sms.code());
-        params.addProperty("time_start", time);
-        params.addProperty("time_left", OPERATION_TIME);
+        params.addProperty("code", sms.code() != null ? sms.code() : "");
+        params.addProperty("time_start", timeStart);
+        params.addProperty("time_left", timeLeft);
 
         JsonObject log = new JsonObject();
         log.addProperty("id", webhookLogs.size() + 1);

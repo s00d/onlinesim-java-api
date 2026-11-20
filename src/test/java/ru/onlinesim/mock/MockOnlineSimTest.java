@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
@@ -32,6 +34,7 @@ import ru.onlinesim.Transport;
 import ru.onlinesim.TransportException;
 import ru.onlinesim.WaitOptions;
 import ru.onlinesim.WebhookLog;
+import ru.onlinesim.WebhookPayload;
 
 /** MockOnlineSim through the real client: every endpoint, every control helper. */
 class MockOnlineSimTest {
@@ -46,6 +49,27 @@ class MockOnlineSimTest {
         return mock.requests().stream().map(MockRequest::path).collect(Collectors.toList());
     }
 
+    private static final Map<String, String> AUTH = Map.of("Authorization", "Bearer mock-key");
+
+    /** A raw request to the mock transport, for checking the wire shapes. */
+    private static Transport.Response send(MockOnlineSim mock, String pathAndQuery, Map<String, String> headers) {
+        try {
+            return mock.transport()
+                    .send(new Transport.Request(
+                            "GET",
+                            URI.create("https://x.test/api/" + pathAndQuery),
+                            headers,
+                            null,
+                            Duration.ofSeconds(1)));
+        } catch (java.io.IOException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private static JsonObject wire(MockOnlineSim mock, String pathAndQuery) {
+        return JsonParser.parseString(send(mock, pathAndQuery, AUTH).body()).getAsJsonObject();
+    }
+
     private static MockRequest last(MockOnlineSim mock) {
         List<MockRequest> requests = mock.requests();
         return requests.get(requests.size() - 1);
@@ -54,24 +78,35 @@ class MockOnlineSimTest {
     @Nested
     class AuthAndTransport {
         @Test
-        void wrongOrMissingKeyIsHttp456WhichTheClientMapsToApiException() {
+        void aWrongKeyIsHttp456AMissingKeyHttp200BothMapToApiException() {
             MockOnlineSim mock = new MockOnlineSim();
             for (String key : new String[] {"nope", ""}) {
                 assertEquals(
                         "ERROR_WRONG_KEY",
                         code(() -> mock.client(b -> b.apiKey(key)).user().balance()));
             }
-            Transport.Response raw = send(mock, "getBalance.php", Map.of());
-            assertEquals(456, raw.status());
-            assertEquals("{\"response\":\"ERROR_WRONG_KEY\"}", raw.body());
+            Transport.Response missing = send(mock, "getBalance.php", Map.of());
+            assertEquals(200, missing.status());
+            assertEquals("{\"response\":\"ERROR_WRONG_KEY\"}", missing.body());
+            Transport.Response wrong = send(mock, "getBalance.php", Map.of("Authorization", "Bearer nope"));
+            assertEquals(456, wrong.status());
+            assertEquals("{\"response\":\"ERROR_WRONG_KEY\"}", wrong.body());
         }
 
         @Test
-        void tariffsAndFreeNumbersNeedNoKey() {
-            OnlineSim client = new MockOnlineSim().client(b -> b.apiKey(null));
+        void tariffsAndFreeNumbersNeedNoKeyButASentWrongKeyIsStillHttp456() {
+            MockOnlineSim mock = new MockOnlineSim();
+            OnlineSim client = mock.client(b -> b.apiKey(null));
             assertEquals(44, client.numbers().tariffsOne(44).code());
             assertEquals(7, client.rent().tariffsOne(7).code());
             assertEquals(44, client.free().list().messages().country());
+            assertEquals(
+                    "ERROR_WRONG_KEY",
+                    code(() -> mock.client(b -> b.apiKey("nope")).free().list()));
+            assertEquals(
+                    456,
+                    send(mock, "getFreeList", Map.of("Authorization", "Bearer nope"))
+                            .status());
         }
 
         @Test
@@ -96,19 +131,9 @@ class MockOnlineSimTest {
 
         @Test
         void anUnknownEndpointIsANonJson404() {
-            Transport.Response res = send(new MockOnlineSim(), "nope.php", Map.of("Authorization", "Bearer mock-key"));
+            Transport.Response res = send(new MockOnlineSim(), "nope.php", AUTH);
             assertEquals(404, res.status());
             assertTrue(res.body().startsWith("<html>"));
-        }
-
-        private Transport.Response send(MockOnlineSim mock, String path, Map<String, String> headers) {
-            try {
-                return mock.transport()
-                        .send(new Transport.Request(
-                                "GET", URI.create("https://x.test/api/" + path), headers, null, Duration.ofSeconds(1)));
-            } catch (java.io.IOException e) {
-                throw new AssertionError(e);
-            }
         }
     }
 
@@ -133,6 +158,8 @@ class MockOnlineSimTest {
             assertEquals(7, order.country());
             assertEquals(1200, order.time());
             assertEquals("vkcom", order.service());
+            assertEquals("vkcom", order.title());
+            assertEquals(0, order.guardIntervalRemainingSeconds());
             assertNull(mock.requests().get(0).query().get("number"));
             assertEquals("1", mock.requests().get(1).query().get("number"));
             Balance b = client.user().balance();
@@ -142,6 +169,15 @@ class MockOnlineSimTest {
             assertEquals(List.of(1L, 2L), ops.stream().map(MockOperation::tzid).collect(Collectors.toList()));
             assertEquals("+44900000001", ops.get(0).number());
             assertEquals("TZ_NUM_WAIT", ops.get(1).status());
+        }
+
+        @Test
+        void getWithNumberOnTheWireAddsTitleResponseTextAndTheGuardInterval() {
+            MockOnlineSim mock = new MockOnlineSim(MockOptions.defaults().guardInterval(120));
+            JsonObject res = wire(mock, "getNum.php?service=google&country=44&number=1");
+            assertEquals("google", res.get("title").getAsString());
+            assertEquals("Waiting for SMS", res.get("response_text").getAsString());
+            assertEquals(120, res.get("guard_interval_remaining_seconds").getAsInt());
         }
 
         @Test
@@ -218,7 +254,24 @@ class MockOnlineSimTest {
             assertEquals("telegram", all.msgList().get(0).service());
             assertEquals("Welcome!", all.msgList().get(0).msg());
             assertEquals("98765", all.msgList().get(1).msg());
-            client.numbers().next(424242); // always succeeds, like the backend
+            assertEquals(
+                    1,
+                    paths(mock).stream()
+                            .filter("setOperationRevise.php"::equals)
+                            .count());
+        }
+
+        @Test
+        void nextAnswersAStringTzidWrongTzidForAnUnknownOneNoTzidFor0() {
+            MockOnlineSim mock = new MockOnlineSim();
+            OnlineSim client = mock.client();
+            long tzid = client.numbers().get("google", 44);
+            assertEquals(
+                    "{\"tzid\":\"" + tzid + "\",\"response\":\"1\"}",
+                    send(mock, "setOperationRevise.php?tzid=" + tzid, AUTH).body());
+            assertEquals("ERROR_WRONG_TZID", code(() -> client.numbers().next(424242)));
+            assertEquals("ERROR_NO_TZID", code(() -> client.numbers().next(0)));
+            assertEquals("ERROR_NO_TZID", code(() -> client.numbers().close(0)));
         }
 
         @Test
@@ -299,55 +352,121 @@ class MockOnlineSimTest {
     @Nested
     class Rent {
         @Test
-        void getChargesStateListsExtendCloseExtendRefusedForNonExtendableRents() {
+        void getReservesTheFirstSmsConfirmsAndChargesExtendChargesAtOnceClose() {
             MockOnlineSim mock = new MockOnlineSim(MockOptions.defaults().balance(10));
             OnlineSim client = mock.client();
             RentItem rent = client.rent().get(7, 3);
             assertEquals(1, rent.tzid());
             assertEquals("900000001", rent.number());
+            assertEquals(0, rent.status());
+            assertEquals(false, rent.checked());
             assertEquals(2.5, rent.sum());
-            assertEquals(3, rent.days());
-            assertEquals(3 * 1440, rent.time());
-            assertEquals(3 * 86400L, rent.timeSeconds());
+            assertEquals(0, rent.days());
+            assertEquals(20, rent.time());
+            assertEquals(1200L, rent.timeSeconds());
+            assertEquals(3, rent.daysAutoextend());
+            assertEquals(0, rent.guardIntervalRemainingSeconds());
             assertEquals(1, rent.extension());
             assertEquals(List.of(), rent.messages());
             assertEquals(Map.of("1", 1.0, "3", 2.5, "7", 5.0), rent.extend());
-            assertEquals(7.5, mock.balance());
+            // reserved: the total balance stays, the price is frozen
+            assertEquals(10, mock.balance());
+            assertEquals(2.5, client.user().balance().zbalance());
+            assertEquals(0, mock.rents().get(0).status());
+            assertEquals("TRY_AGAIN_LATER", code(() -> client.rent().extend(rent.tzid()))); // not confirmed yet
 
             mock.addSms(rent.tzid(), "Bank: 777 888", "bank");
             mock.addSms(rent.tzid(), "no code here");
             RentItem state = client.rent().stateOne(rent.tzid());
+            assertEquals(1, state.status());
+            assertEquals(true, state.checked());
+            assertEquals(3, state.days());
+            assertEquals(3 * 1440, state.time());
+            assertEquals(3 * 86400L, state.timeSeconds());
             // newest first
             assertEquals("other", state.messages().get(0).service());
             assertEquals("", state.messages().get(0).code());
             assertEquals("bank", state.messages().get(1).service());
             assertEquals("777888", state.messages().get(1).code());
+            assertEquals(7.5, mock.balance());
+            assertEquals(0, client.user().balance().zbalance());
 
             RentItem extended = client.rent().extend(rent.tzid(), 1);
             assertEquals(4, extended.days());
+            assertEquals(3, extended.daysAutoextend());
             assertEquals(3.5, extended.sum());
             assertEquals(6.5, mock.balance());
+            assertEquals("TRY_AGAIN_LATER", code(() -> client.rent().extend(rent.tzid(), 2))); // unknown period
+            assertEquals("TRY_AGAIN_LATER", code(() -> client.rent().extend(999))); // unknown tzid
 
             RentItem fixed = client.rent().get(7, 1, false);
-            assertEquals(0, fixed.extension());
-            assertEquals(Map.of(), fixed.extend());
+            mock.addSms(fixed.tzid(), "1234");
+            RentItem fixedState = client.rent().stateOne(fixed.tzid());
+            assertEquals(0, fixedState.extension());
+            assertEquals(Map.of(), fixedState.extend());
             assertEquals("TRY_AGAIN_LATER", code(() -> client.rent().extend(fixed.tzid())));
             assertEquals(
                     List.of(rent.tzid(), fixed.tzid()),
                     client.rent().state().stream().map(RentItem::tzid).collect(Collectors.toList()));
 
-            client.rent().close(fixed.tzid());
+            client.rent().close(fixed.tzid()); // confirmed: no refund
+            assertEquals(5.5, mock.balance());
             assertEquals(
                     List.of(rent.tzid()),
                     mock.rents().stream().map(MockRent::tzid).collect(Collectors.toList()));
             assertEquals("ERROR_NO_OPERATIONS", code(() -> client.rent().stateOne(fixed.tzid())));
-            assertEquals("ERROR_WRONG_TZID", code(() -> client.rent().close(fixed.tzid())));
+            assertEquals("ERROR_NO_OPERATIONS", code(() -> client.rent().close(fixed.tzid())));
+        }
+
+        @Test
+        void sumIsANumberInGetRentNumAndExtendAndADecimalStringInGetRentStateOnTheWire() {
+            MockOnlineSim mock = new MockOnlineSim();
+            JsonObject got = wire(mock, "rent/getRentNum.php?days=3").getAsJsonObject("item");
+            assertTrue(got.get("sum").getAsJsonPrimitive().isNumber());
+            assertEquals(2.5, got.get("sum").getAsDouble());
+            JsonObject listed = wire(mock, "rent/getRentState.php")
+                    .getAsJsonArray("list")
+                    .get(0)
+                    .getAsJsonObject();
+            assertEquals("\"2.50\"", listed.get("sum").toString());
+            mock.addSms(1, "1234");
+            JsonObject extended =
+                    wire(mock, "rent/extendRentState.php?tzid=1&days=1").getAsJsonObject("item");
+            assertTrue(extended.get("sum").getAsJsonPrimitive().isNumber());
+        }
+
+        @Test
+        void anUnconfirmedRentCloseReleasesTheReservationNotifySmsHasCode0AndConfirmsNothing() {
+            MockOnlineSim mock =
+                    new MockOnlineSim(MockOptions.defaults().balance(10).guardInterval(120));
+            OnlineSim client = mock.client();
+            RentItem rent = client.rent().get(7, 3);
+            assertEquals(120, rent.guardIntervalRemainingSeconds());
+            assertEquals("NO_COMPLETE_TZID", code(() -> client.rent().close(rent.tzid())));
+            mock.addSms(rent.tzid(), "Messages from this sender are not accepted", "notify");
+            RentItem state = client.rent().stateOne(rent.tzid());
+            assertEquals(0, state.status());
+            assertEquals(false, state.checked());
+            assertEquals(0, state.guardIntervalRemainingSeconds());
+            assertEquals("notify", state.messages().get(0).service());
+            assertEquals("0", state.messages().get(0).code());
+            JsonObject sms = wire(mock, "rent/getRentState.php")
+                    .getAsJsonArray("list")
+                    .get(0)
+                    .getAsJsonObject()
+                    .getAsJsonArray("messages")
+                    .get(0)
+                    .getAsJsonObject();
+            assertEquals("0", sms.get("code").toString()); // the integer 0 on the wire
+            client.rent().close(rent.tzid());
+            assertEquals(10, mock.balance()); // released, nothing charged
+            assertEquals(0, client.user().balance().zbalance());
         }
 
         @Test
         void rentErrorsUnknownCountryUnknownDaysLowBalance() {
             OnlineSim client = new MockOnlineSim(MockOptions.defaults().balance(1.5)).client();
-            assertEquals("NO_COUNTRY", code(() -> client.rent().get(44)));
+            assertEquals("UNDEFINED_COUNTRY", code(() -> client.rent().get(44)));
             assertEquals("UNDEFINED_DAYS", code(() -> client.rent().get(7, 2)));
             assertEquals("WARNING_LOW_BALANCE", code(() -> client.rent().get(7, 3)));
         }
@@ -359,7 +478,9 @@ class MockOnlineSimTest {
             long tzid = client.rent().get().tzid();
             mock.addSmsAfter(tzid, "6060", 1);
             assertEquals(List.of(), client.rent().stateOne(tzid).messages());
-            var sms = client.rent().state().get(0).messages().get(0);
+            RentItem confirmed = client.rent().state().get(0);
+            assertEquals(1, confirmed.status());
+            var sms = confirmed.messages().get(0);
             assertEquals("6060", sms.code());
             assertEquals("other", sms.service());
 
@@ -385,9 +506,10 @@ class MockOnlineSimTest {
             assertEquals("secret", client.user().profile().apikey());
             assertNull(client.user().profile().webhookUrl());
             ApiException invalid =
-                    assertThrows(ApiException.class, () -> client.user().setWebhookUrl("ftp://x"));
+                    assertThrows(ApiException.class, () -> client.user().setWebhookUrl("not a url"));
             assertEquals("VALIDATION_ERROR", invalid.getCode());
             assertEquals("The webhook url must be a valid URL.", invalid.getMessage());
+            client.user().setWebhookUrl("ftp://x"); // any scheme://… URL
             client.user().setWebhookUrl("https://example.com/hook");
             MockRequest post = last(mock);
             assertEquals("POST", post.method());
@@ -399,16 +521,28 @@ class MockOnlineSimTest {
             mock.addSms(tzid, "code 1234");
             RentItem rent = client.rent().get();
             mock.addSms(rent.tzid(), "code 5678");
+            mock.addSms(rent.tzid(), "no code");
             Paginator<WebhookLog> logs = client.user().webhookLogs();
-            assertEquals(2, logs.total());
+            assertEquals(3, logs.total());
             assertEquals(1, logs.currentPage());
             assertEquals(10, logs.perPage());
             assertEquals("rent_sms", logs.data().get(0).type());
-            assertEquals(rent.tzid(), logs.data().get(0).params().operationId());
-            assertEquals("5678", logs.data().get(0).params().code());
-            assertEquals("receiving_sms", logs.data().get(1).type());
-            assertEquals(tzid, logs.data().get(1).params().operationId());
-            assertEquals("1234", logs.data().get(1).params().code());
+            assertEquals("", logs.data().get(0).params().code());
+            assertEquals("rent_sms", logs.data().get(1).type());
+            assertEquals(rent.tzid(), logs.data().get(1).params().operationId());
+            assertEquals("5678", logs.data().get(1).params().code());
+            assertEquals("receiving_sms", logs.data().get(2).type());
+            assertEquals(tzid, logs.data().get(2).params().operationId());
+            assertEquals("1234", logs.data().get(2).params().code());
+            // activation: +number, seconds left, order time; rent: digits without +, minutes left, SMS time
+            WebhookPayload activation = logs.data().get(2).params();
+            assertEquals("+44900000001", activation.number());
+            assertEquals(1200L, activation.timeLeft());
+            assertEquals("2026-01-01 00:00:01", activation.timeStart());
+            WebhookPayload rentSms = logs.data().get(1).params();
+            assertEquals("7900000002", rentSms.number());
+            assertEquals(1440L, rentSms.timeLeft());
+            assertEquals("2026-01-01 00:00:03", rentSms.timeStart());
 
             client.user().clearWebhookUrl();
             assertEquals("{\"profile\":{\"webhook_url\":null}}", last(mock).body());
@@ -425,6 +559,11 @@ class MockOnlineSimTest {
             assertEquals(1.2, b.zbalance());
             PaymentHistory history = client.user().paymentHistory();
             assertEquals(Map.of(), history.paylist());
+            assertEquals(Map.of("1", "Card"), history.forms());
+            assertEquals(List.of("onlinesim.io"), history.domains());
+            assertEquals(
+                    "{\"USD\":[5,10,20]}",
+                    wire(mock, "getPaymentHistory.php").get("buttons").toString());
             assertEquals(List.of(), history.orders().data());
             assertEquals(0, history.orders().total());
             assertEquals(1, history.orders().currentPage());
@@ -435,13 +574,47 @@ class MockOnlineSimTest {
             OnlineSim client = new MockOnlineSim().client();
             FreeList uk = client.free().list();
             assertEquals(
-                    List.of(7, 44),
+                    List.of(44, 7),
                     uk.countries().stream().map(c -> c.country()).collect(Collectors.toList()));
             assertEquals(List.of("7459608320"), List.copyOf(uk.numbers().keySet()));
             assertEquals("7459608320", uk.messages().number());
             assertEquals(44, uk.messages().country());
             assertEquals(2, uk.messages().total());
+            assertEquals(10, uk.messages().perPage());
             assertEquals("195895", uk.messages().data().get(0).code());
+            assertEquals(
+                    "2026-01-01T00:00:00.000000Z", uk.messages().data().get(0).createdAt());
+            // count clamped to 10..500 (0 used to divide by zero)
+            assertEquals(
+                    10,
+                    client.free()
+                            .list(FreeListOptions.defaults().count(0))
+                            .messages()
+                            .perPage());
+            assertEquals(
+                    10,
+                    client.free()
+                            .list(FreeListOptions.defaults().count(-5))
+                            .messages()
+                            .perPage());
+            assertEquals(
+                    500,
+                    client.free()
+                            .list(FreeListOptions.defaults().count(9999))
+                            .messages()
+                            .perPage());
+            // unknown country → the first one
+            assertEquals(
+                    44,
+                    client.free()
+                            .list(FreeListOptions.defaults().country(999))
+                            .messages()
+                            .country());
+            JsonObject raw = JsonParser.parseString(
+                            send(new MockOnlineSim(), "getFreeList", Map.of()).body())
+                    .getAsJsonObject();
+            assertTrue(raw.get("content").isJsonNull());
+            assertTrue(raw.get("ignore").getAsJsonPrimitive().isString());
             FreeList ru = client.free().list(FreeListOptions.defaults().country(7));
             assertEquals("51423", ru.messages().data().get(0).code());
             assertEquals("9001234567", ru.messages().data().get(0).myNumber());

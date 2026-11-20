@@ -1,6 +1,6 @@
 package ru.onlinesim;
 
-/** Balance, USD. {@code balance} includes the frozen {@code zbalance}: available = balance − zbalance. */
+/** Balance, USD. {@code balance} includes the frozen {@code zbalance}: available = balance − max(zbalance, 0). */
 public final class Balance extends Model {
     private double balance;
     private double zbalance;
@@ -13,7 +13,7 @@ public final class Balance extends Model {
         return balance;
     }
 
-    /** @return sum frozen by numbers in progress */
+    /** @return sum frozen by numbers and unconfirmed rents in progress; may be negative */
     public double zbalance() {
         return zbalance;
     }

@@ -2,9 +2,14 @@ package ru.onlinesim;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Set;
 
 /** The {@code waitCode} poll loop, on any {@link Target} (the numbers section, or a fake in tests). */
 final class WaitCode {
+    /** Error codes that mean "try again": rate limit (HTTP 429), a transient server error, too many requests. */
+    private static final Set<String> RETRYABLE =
+            Set.of("TRY_AGAIN_LATER", "ERROR_UNDEFINED", "INTERVAL_CONCURRENT_REQUESTS_ERROR");
+
     /** What the loop needs from the numbers section. */
     interface Target {
         Operation stateOne(long tzid, StateOptions options);
@@ -25,6 +30,8 @@ final class WaitCode {
                 op = numbers.stateOne(tzid, state);
             } catch (TransportException e) {
                 // transient: retried until the deadline
+            } catch (ApiException e) {
+                if (!RETRYABLE.contains(e.getCode())) throw e;
             }
 
             if (op != null) {

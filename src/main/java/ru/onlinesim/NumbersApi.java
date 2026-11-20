@@ -176,6 +176,7 @@ public final class NumbersApi implements WaitCode.Target {
      * Switches the operation to its next SMS and keeps it open.
      *
      * @param tzid operation id
+     * @throws ApiException {@code ERROR_WRONG_TZID} (not an operation of this account), {@code ERROR_NO_TZID}
      */
     @Override
     public void next(long tzid) {
@@ -197,6 +198,7 @@ public final class NumbersApi implements WaitCode.Target {
      * Finishes the operation and reports the number as bad (only before any SMS arrived).
      *
      * @param tzid operation id
+     * @throws ApiException as {@code close}; code {@code "0"} when the operation already has an SMS (nothing changes)
      */
     public void ban(long tzid) {
         request.get("setOperationOk.php", "tzid", tzid, "ban", true);
@@ -238,8 +240,9 @@ public final class NumbersApi implements WaitCode.Target {
 
     /**
      * Polls the operation until a code different from {@code since} arrives, then closes it (or calls {@code next}
-     * with {@code keepOpen}). A transient {@link TransportException} is retried until the timeout; any
-     * {@link ApiException} is thrown at once.
+     * with {@code keepOpen}). Transient errors are retried until the timeout: {@link TransportException}, and
+     * {@link ApiException} {@code TRY_AGAIN_LATER} (the HTTP 429 rate limit), {@code ERROR_UNDEFINED} and {@code
+     * INTERVAL_CONCURRENT_REQUESTS_ERROR}. Any other {@link ApiException} is thrown at once.
      *
      * @param tzid    operation id
      * @param options interval, timeout, keepOpen, fullMessage, since

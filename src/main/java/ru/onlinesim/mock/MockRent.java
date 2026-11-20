@@ -12,7 +12,13 @@ public final class MockRent {
     final long tzid;
     final int country;
     final String number;
+    /** Total rent days: the initial period plus extensions. */
     int days;
+    /** The initial period ({@code days} of getRentNum). */
+    final int initialDays;
+    /** 0: reserved, waiting for the first SMS; 1: confirmed by an SMS that is not {@code notify}, price charged. */
+    int status;
+
     long sumMills;
     final boolean extension;
     final List<MockSms> messages = new ArrayList<>();
@@ -22,12 +28,15 @@ public final class MockRent {
         this.country = country;
         this.number = number;
         this.days = days;
+        this.initialDays = days;
         this.sumMills = sumMills;
         this.extension = extension;
     }
 
     MockRent snapshot() {
-        MockRent copy = new MockRent(tzid, country, number, days, sumMills, extension);
+        MockRent copy = new MockRent(tzid, country, number, initialDays, sumMills, extension);
+        copy.days = days;
+        copy.status = status;
         copy.messages.addAll(messages);
         return copy;
     }
@@ -52,7 +61,12 @@ public final class MockRent {
         return days;
     }
 
-    /** @return total paid, USD */
+    /** @return 0 while reserved (waiting for the first SMS that is not {@code notify}), 1 once confirmed and charged */
+    public int status() {
+        return status;
+    }
+
+    /** @return total cost incl. extensions, USD; frozen while {@code status} is 0 */
     public double sum() {
         return MockState.usd(sumMills);
     }
@@ -69,7 +83,7 @@ public final class MockRent {
 
     @Override
     public String toString() {
-        return "MockRent{tzid=" + tzid + ", country=" + country + ", number=" + number + ", days=" + days
-                + ", messages=" + messages + "}";
+        return "MockRent{tzid=" + tzid + ", country=" + country + ", number=" + number + ", days=" + days + ", status="
+                + status + ", messages=" + messages + "}";
     }
 }

@@ -21,6 +21,7 @@ public final class PaymentOrder extends Model {
         return sum;
     }
 
+    /** @return currency, or {@code null} */
     public String currency() {
         return currency;
     }
@@ -29,6 +30,7 @@ public final class PaymentOrder extends Model {
         return stat;
     }
 
+    /** @return payment form name, or {@code null} */
     public String formText() {
         return formText;
     }

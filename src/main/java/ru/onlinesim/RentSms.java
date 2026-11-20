@@ -14,6 +14,10 @@ public final class RentSms extends Model {
         return id;
     }
 
+    /**
+     * @return sender; {@code notify}: a notice about a prohibited sender (does not confirm the rent), {@code init}: the
+     *     record of a rent confirmed at once
+     */
     public String service() {
         return service;
     }
@@ -22,6 +26,7 @@ public final class RentSms extends Model {
         return text;
     }
 
+    /** @return code found in the text, {@code ""} when none; {@code "0"} for a {@code notify} SMS (the server sends 0) */
     public String code() {
         return code;
     }

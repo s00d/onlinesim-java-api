@@ -26,7 +26,7 @@ public final class Operation extends Model {
 
     /**
      * @return state: {@code TZ_INPOOL}, {@code TZ_NUM_WAIT}, {@code TZ_NUM_ANSWER}, {@code TZ_OVER_OK} or
-     *     {@code ERROR_NO_ITEMS}
+     *     {@code ERROR_NO_ITEMS}; {@code null} when the server sent none (no number could be issued)
      */
     public String response() {
         return response;

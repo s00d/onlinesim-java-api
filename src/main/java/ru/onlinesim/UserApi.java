@@ -14,7 +14,7 @@ public final class UserApi {
         this.request = request;
     }
 
-    /** @return balance, USD; {@code balance} includes the frozen {@code zbalance} */
+    /** @return balance, USD; {@code balance} includes the frozen {@code zbalance}: available = balance − max(zbalance, 0) */
     public Balance balance() {
         return Json.convert(request.get("getBalance.php", "income", 1), Balance.class);
     }

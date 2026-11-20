@@ -33,6 +33,7 @@ public final class RentItem extends Model {
         return tzid;
     }
 
+    /** @return 0: reserved, waiting for the first SMS; 1: confirmed and charged */
     public int status() {
         return status;
     }
@@ -45,7 +46,10 @@ public final class RentItem extends Model {
         return country;
     }
 
-    /** @return price paid, USD (parsed from the server's decimal string) */
+    /**
+     * @return cost of the rent incl. extensions, USD (the server sends a number, or a decimal string in getRentState);
+     *     reserved while {@code status} is 0, charged once the rent is confirmed
+     */
     public double sum() {
         return sum;
     }

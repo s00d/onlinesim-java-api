@@ -1,6 +1,6 @@
 package ru.onlinesim;
 
-/** No number is available right now ({@code NO_NUMBER}, {@code NO_NUMBER_FOR_FORWARD}). Retry later or pick another country. */
+/** No number is available right now ({@code NO_NUMBER}). Retry later or pick another country. */
 public class NoNumberException extends ApiException {
     private static final long serialVersionUID = 1L;
 

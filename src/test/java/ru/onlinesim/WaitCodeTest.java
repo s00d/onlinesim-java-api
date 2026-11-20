@@ -134,8 +134,32 @@ class WaitCodeTest {
         assertEquals(List.of("state 7 code=true", "sleep 5000", "state 7 code=true", "close 7"), t.log);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"TRY_AGAIN_LATER", "ERROR_UNDEFINED", "INTERVAL_CONCURRENT_REQUESTS_ERROR"})
+    void retriesATransientApiExceptionUntilTheCodeArrives(String code) {
+        Setup t = new Setup(new ApiException(code), "{\"msg\":\"42\"}");
+        assertEquals("42", WaitCode.run(t, 7, t.options()));
+        assertEquals(List.of("state 7 code=true", "sleep 5000", "state 7 code=true", "close 7"), t.log);
+    }
+
     @Test
-    void raisesAnyApiExceptionAtOnce() {
+    void aRetryableApiExceptionStillEndsInWaitTimeoutAtTheDeadline() {
+        Object[] steps = new Object[10];
+        Arrays.fill(steps, new ApiException("TRY_AGAIN_LATER"));
+        Setup t = new Setup(steps);
+        WaitOptions o = t.options().interval(Duration.ofSeconds(5)).timeout(Duration.ofSeconds(10));
+        assertThrows(WaitTimeoutException.class, () -> WaitCode.run(t, 7, o));
+        assertEquals(3, t.only("state").size());
+    }
+
+    @Test
+    void anOperationWithoutResponseKeepsPolling() {
+        Setup t = new Setup("{\"response\":null}", "{\"msg\":\"77\"}");
+        assertEquals("77", WaitCode.run(t, 7, t.options()));
+    }
+
+    @Test
+    void raisesAnyOtherApiExceptionAtOnce() {
         Setup t = new Setup(new ApiException("ERROR_NO_OPERATIONS"));
         assertEquals(
                 "ERROR_NO_OPERATIONS",
