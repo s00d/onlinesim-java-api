@@ -13,11 +13,11 @@ Balance in USD.
 Balance balance()
 ```
 
-`Balance`: `balance()` includes the sum frozen by numbers in progress (`zbalance()`): available = `balance() − zbalance()`. `income()` is the partner income (`null` when not sent). The server caches the answer for 60 s.
+`Balance`: `balance()` includes the sum frozen by numbers and unconfirmed rents in progress (`zbalance()`, which may be negative): available = `balance() − max(zbalance(), 0)`. `income()` is the partner income (`null` when not sent). The server caches the answer for 60 s.
 
 ```java
 Balance b = client.user().balance();
-double available = b.balance() - b.zbalance();
+double available = b.balance() - Math.max(b.zbalance(), 0);
 ```
 
 Errors: `ApiException` `ERROR_WRONG_KEY`, `ACCOUNT_BLOCKED`, `API_ACCESS_DISABLED`, `API_ACCESS_IP`.
@@ -30,7 +30,7 @@ The account profile.
 Profile profile()
 ```
 
-`Profile`: `id()`, `name()`, `username()`, `email()`, `locale()`, `currency()`, `numberCountry()`, `numberReject()` (`List<String>`), `webhookUrl()`, `apiAccess()` (`true` or a map of allowed IPs, as a Gson `JsonElement`), ….
+`Profile`: `id()`, `name()`, `username()`, `email()`, `locale()`, `currency()`, `numberCountry()`, `numberReject()` (`List<String>`), `webhookUrl()`, `apiAccess()` (`true`, `false` when API access is disabled in the profile, or a map of allowed IPs, as a Gson `JsonElement`), `number()` (`Long`, `null` when no phone is linked), `country()` (`String` or `null`), ….
 
 ```java
 Profile p = client.user().profile();
@@ -46,7 +46,7 @@ PaymentHistory paymentHistory()
 PaymentHistory paymentHistory(int page)
 ```
 
-`PaymentHistory`: `orders()` (`Paginator<PaymentOrder>`), `paylist()`, `domains()`, `forms()`, `currency()`. `PaymentOrder.sum()` stays a decimal string (`"89.00"`).
+`PaymentHistory`: `orders()` (`Paginator<PaymentOrder>`), `paylist()`, `domains()`, `forms()`, `currency()`. `PaymentOrder.sum()` stays a decimal string (`"89.00"`); `currency()` and `formText()` may be `null`. `paylist()` maps a group id to its payment methods; when the ids are 0, 1, 2… the server sends a JSON array, whose items are keyed `"0"`, `"1"`, ….
 `Paginator<T>`: `data()`, `currentPage()`, `lastPage()`, `perPage()`, `total()`, `from()`, `to()`, `nextPageUrl()`, ….
 
 ```java

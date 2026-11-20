@@ -7,6 +7,12 @@ navigation:
 
 The full history is in [CHANGELOG.md](https://github.com/s00d/onlinesim-java-api/blob/main/CHANGELOG.md).
 
+## 2.1.1
+
+- Fixed models against the current API: `Profile.number()`/`country()`, `Operation.response()` may be `null`, `RentSms.code()` `"0"` for `notify` SMS; `paymentHistory().paylist()` is kept when it arrives as a list.
+- `waitCode` retries `TRY_AGAIN_LATER` (rate limit), `ERROR_UNDEFINED` and `INTERVAL_CONCURRENT_REQUESTS_ERROR`.
+- `MockOnlineSim` follows the backend more closely: rent reservation and confirmation, `setOperationRevise` and `closeRentNum` answers, missing vs wrong key — see [Testing](/testing).
+
 ## 2.1.0
 
 - New: `MockOnlineSim` (`ru.onlinesim.mock`), an offline fake of the API for your tests — see [Testing](/testing).

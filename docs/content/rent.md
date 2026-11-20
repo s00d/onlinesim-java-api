@@ -7,14 +7,16 @@ navigation:
 
 A rent keeps a number for `days` days. Its SMS come in `RentItem.messages()`, newest first.
 
+`get` reserves the price (it shows in `zbalance`): the rent starts with `status()` `0` and `checked()` `false` and waits up to 20 minutes for its first SMS. The first SMS that is not a `notify` notice confirms it (`status()` `1`) and charges the price; without one the rent closes and the reservation is released. Some countries (`confirm` in `tariffs`, e.g. US numbers) are confirmed and charged at once.
+
 `RentItem`: `tzid()`, `status()`, `number()`, `country()`, `sum()`, `days()`, `hours()`, `time()`, `timeSeconds()`, `extension()`, `extend()`, `messages()`, `startTime()`, `stopTime()`, `dayExtend()`, … —
-`sum()` is the price paid in USD (a `double`; the server sends a decimal string), `time()` minutes left, `timeSeconds()` seconds left,
+`sum()` is the cost in USD incl. extensions (a `double`; the server sends a number, or a decimal string in `state`), `time()` minutes left, `timeSeconds()` seconds left,
 `extension()` `0` not extendable / `1` extendable / `2` auto-extension, `extend()` maps days to the extension price (empty when not extendable),
-`messages()` is `List<RentSms>`: `id()`, `service()`, `text()`, `code()`, `createdAt()`.
+`messages()` is `List<RentSms>`: `id()`, `service()`, `text()`, `code()`, `createdAt()` — `code()` is `""` when no code was found and `"0"` for a `notify` SMS (a prohibited sender; the server sends the integer `0`).
 
 ## get
 
-Rent a number and charge the balance.
+Rent a number. The price is reserved; the first SMS charges it.
 
 ```java
 RentItem get()
@@ -66,7 +68,7 @@ Errors: `ApiException` `ERROR_NO_OPERATIONS` for an unknown tzid.
 
 ## extend
 
-Extend a rent by `days` days and charge the balance. Only rents created with `extension = true`.
+Extend a rent by `days` days and charge the balance at once. Only confirmed rents (`status()` `1`) created with `extension = true`.
 
 ```java
 RentItem extend(long tzid)
@@ -78,11 +80,11 @@ RentItem rent = client.rent().extend(tzid, 3);
 System.out.println(rent.stopTime());
 ```
 
-Errors: `ApiException` `TRY_AGAIN_LATER` (not extendable, unknown tzid or period, a repeat within 10 s), `WARNING_LOW_BALANCE`.
+Errors: `ApiException` `TRY_AGAIN_LATER` (unknown tzid, not confirmed yet or closed, not extendable, unknown period, a repeat within 10 s), `WARNING_LOW_BALANCE`.
 
 ## close
 
-Return the number before the period ends. A rent that is not confirmed yet and has no SMS can be closed only after 120 s; US numbers cannot be closed early.
+Return the number before the period ends. A rent that is not confirmed yet (`status()` `0`) and has no SMS can be closed only after 120 s; then, or with only `notify` SMS, the reservation is released. With a real SMS the rent is confirmed (charged) and closed. A confirmed rent closes without a refund. US numbers cannot be closed early.
 
 ```java
 void close(long tzid)
@@ -92,7 +94,7 @@ void close(long tzid)
 client.rent().close(tzid);
 ```
 
-Errors: `ApiException` `ERROR_NO_OPERATIONS`, `NO_COMPLETE_TZID`, `NO_CLOSE_RENT_US`, `TRY_AGAIN_LATER`.
+Errors: `ApiException` `ERROR_NO_OPERATIONS` (unknown tzid), `NO_COMPLETE_TZID`, `NO_CLOSE_RENT_US`, `TRY_AGAIN_LATER`.
 
 ## tariffs
 

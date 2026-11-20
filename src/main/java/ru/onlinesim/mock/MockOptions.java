@@ -86,8 +86,8 @@ public final class MockOptions {
     }
 
     /**
-     * @param seconds guard interval of new operations; {@code > 0}: an operation without SMS cannot be closed
-     *     ({@code NO_COMPLETE_TZID}). Default 0.
+     * @param seconds guard interval of new operations and rents; {@code > 0}: an operation without SMS, or an
+     *     unconfirmed rent without any SMS, cannot be closed ({@code NO_COMPLETE_TZID}). Default 0.
      * @return a copy with the option set
      */
     public MockOptions guardInterval(int seconds) {

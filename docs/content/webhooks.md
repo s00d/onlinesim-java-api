@@ -47,11 +47,11 @@ public class WebhookServer {
 | `operationId()` | `Long` | `tzid` of the operation or rent. |
 | `userId()` | `Long` | Account id. |
 | `countryCode()` | `Integer` | Country code of the number. |
-| `number()` | `String` | The number, e.g. `+79001234567`. |
+| `number()` | `String` | Numbers: `+` and the full number (`+79001234567`), or `hidden`. Rent: the full number in digits without `+` (`79001234567`). |
 | `sender()` | `String` | Sender of the SMS, e.g. `VK`. |
 | `message()` | `String` | Full SMS text. |
 | `code()` | `String` | Code extracted from the SMS. |
-| `timeStart()` | `String` | Start of the operation. |
-| `timeLeft()` | `Long` | Time left. |
+| `timeStart()` | `String` | Numbers: when the operation was ordered. Rent: when the SMS arrived. `YYYY-MM-DD HH:MM:SS`. |
+| `timeLeft()` | `Long` | Time left: seconds for numbers, minutes for rent. |
 
 Every accessor returns `null` when the field is missing or malformed.

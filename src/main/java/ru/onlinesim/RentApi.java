@@ -4,7 +4,11 @@ import com.google.gson.JsonElement;
 import java.util.List;
 import java.util.Map;
 
-/** Rented numbers: {@code client.rent()}. */
+/**
+ * Rented numbers: {@code client.rent()}. {@code get} reserves the price (it shows in {@code zbalance}): the rent starts
+ * with {@code status} 0 and waits for its first SMS; the first SMS that is not a {@code notify} notice confirms it
+ * ({@code status} 1) and charges the price.
+ */
 public final class RentApi {
     private final Requester request;
 
@@ -39,7 +43,7 @@ public final class RentApi {
     }
 
     /**
-     * Rents a number and charges the balance.
+     * Rents a number. The price is reserved; the first SMS that is not {@code notify} confirms the rent and charges it.
      *
      * @param country   country code
      * @param days      one of the tariff's {@code days} keys
@@ -92,11 +96,14 @@ public final class RentApi {
     }
 
     /**
-     * Extends a rent and charges the balance (only rents created with {@code extension = true}).
+     * Extends a rent and charges the balance at once. Only confirmed rents ({@code status} 1) created with {@code
+     * extension = true}.
      *
      * @param tzid rent id
      * @param days days to add
      * @return the rent
+     * @throws ApiException {@code TRY_AGAIN_LATER} for every refusal (unknown tzid, not confirmed yet or closed, not
+     *     extendable, unknown period, a repeat within 10 s); {@code WARNING_LOW_BALANCE}
      */
     public RentItem extend(long tzid, int days) {
         JsonElement res =
@@ -130,10 +137,13 @@ public final class RentApi {
     }
 
     /**
-     * Returns the number before the rent period ends.
+     * Returns the number before the rent period ends. An unconfirmed rent ({@code status} 0) without any SMS can be
+     * closed only after 120 s; then, or with only {@code notify} SMS, the reservation is released. A confirmed rent
+     * closes without a refund.
      *
      * @param tzid rent id
-     * @throws ApiException e.g. {@code NO_COMPLETE_TZID}, {@code NO_CLOSE_RENT_US}
+     * @throws ApiException e.g. {@code ERROR_NO_OPERATIONS} (unknown tzid), {@code NO_COMPLETE_TZID}, {@code
+     *     NO_CLOSE_RENT_US}
      */
     public void close(long tzid) {
         request.get("rent/closeRentNum.php", "tzid", tzid);

@@ -1,10 +1,14 @@
 package ru.onlinesim;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static ru.onlinesim.Fake.map;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -39,6 +43,40 @@ class UserTest {
         assertEquals(List.of("333"), p.numberReject());
         assertTrue(p.apiAccess().getAsBoolean());
         assertEquals(1, p.numberCountry());
+    }
+
+    @Test
+    void profileDecodesNumberAsIntegerAndCountryAsString() {
+        Fake f = Fake.client()
+                .json(
+                        "{\"response\":\"1\",\"profile\":{\"id\":1,\"number\":79001234567,\"country\":\"RU\",\"api_access\":false}}")
+                .json(Fake.fixture("getProfile"));
+        Profile p = f.client.user().profile();
+        assertEquals(79001234567L, p.number());
+        assertEquals("RU", p.country());
+        assertFalse(p.apiAccess().getAsBoolean());
+        Profile empty = f.client.user().profile();
+        assertNull(empty.number());
+        assertNull(empty.country());
+    }
+
+    @Test
+    void paymentHistoryKeepsAPaylistSentAsAJsonArrayNullableOrderFields() {
+        JsonObject body =
+                JsonParser.parseString(Fake.fixture("getPaymentHistory")).getAsJsonObject();
+        body.add("paylist", JsonParser.parseString("[{\"id\":0,\"name\":\"Card\"},{\"id\":1,\"name\":\"Crypto\"}]"));
+        JsonObject order = JsonParser.parseString(
+                        "{\"id\":1,\"sum\":\"10.00\",\"currency\":null,\"form_text\":null,\"stat\":0,\"created_at\":\"2026-06-14 09:12:12\"}")
+                .getAsJsonObject();
+        JsonArray data = new JsonArray();
+        data.add(order);
+        body.getAsJsonObject("orders").add("data", data);
+        PaymentHistory h = Fake.client().json(body.toString()).client.user().paymentHistory();
+        assertEquals(List.of("0", "1"), List.copyOf(h.paylist().keySet()));
+        assertEquals(
+                "Crypto", h.paylist().get("1").getAsJsonObject().get("name").getAsString());
+        assertNull(h.orders().data().get(0).currency());
+        assertNull(h.orders().data().get(0).formText());
     }
 
     @Test

@@ -59,7 +59,7 @@ NumberOrder getWithNumber(String service, int country)
 NumberOrder getWithNumber(String service, int country, Collection<String> reject)
 ```
 
-`NumberOrder`: `tzid()`, `number()` (with `+`), `country()`, `time()` (seconds left), `service()`, `title()`, `guardIntervalRemainingSeconds()`.
+`NumberOrder`: `tzid()`, `number()` (with `+`), `country()`, `time()` (seconds left), `service()`, `title()`, `guardIntervalRemainingSeconds()` (seconds until the operation may be closed).
 
 ```java
 NumberOrder order = client.numbers().getWithNumber("google", 44);
@@ -84,7 +84,7 @@ List<Operation> state(StateOptions options)
 | `msgList` | `boolean` | `false` | All SMS in `msgList()` (`List<OperationSms>`) instead of `msg()`. |
 
 `Operation`: `tzid()`, `response()`, `number()`, `service()`, `country()`, `sum()`, `time()`, `msg()`, `msgList()`, `guardIntervalRemainingSeconds()`, ….
-`response()` is the state: `TZ_INPOOL` (number being assigned), `TZ_NUM_WAIT` (waiting for SMS), `TZ_NUM_ANSWER` (SMS arrived), `TZ_OVER_OK` (finished), `ERROR_NO_ITEMS` (failed). `msg()` is `null` until the first SMS. The server caches answers for a few seconds.
+`response()` is the state: `TZ_INPOOL` (number being assigned), `TZ_NUM_WAIT` (waiting for SMS), `TZ_NUM_ANSWER` (SMS arrived), `TZ_OVER_OK` (finished), `ERROR_NO_ITEMS` (failed), or `null` when the server sent no state (no number could be issued). `msg()` is `null` until the first SMS. The server caches answers for a few seconds.
 
 ```java
 StateOptions newestFirst = StateOptions.defaults().orderBy(StateOptions.Order.DESC);
@@ -104,7 +104,7 @@ Operation stateOne(long tzid, StateOptions options)
 
 ```java
 Operation op = client.numbers().stateOne(tzid);
-if (op.response().equals("TZ_NUM_ANSWER")) System.out.println(op.msg());
+if ("TZ_NUM_ANSWER".equals(op.response())) System.out.println(op.msg()); // response() may be null
 ```
 
 Errors: `ApiException` `ERROR_NO_OPERATIONS` when the operation does not exist (any more).
@@ -127,7 +127,7 @@ String waitCode(long tzid, WaitOptions options)
 | `since` | `String` | `null` | Ignore this value (the previous code). |
 | `sleeper`, `clock` | `WaitOptions.Sleeper`, `Clock` | real | Injectable for tests. |
 
-A transient `TransportException` is retried until the timeout; any `ApiException` is thrown at once. An interrupt stops the wait with `OnlineSimException` and keeps the thread's interrupt flag.
+Transient errors are retried until the timeout: `TransportException`, and `ApiException` `TRY_AGAIN_LATER` (the HTTP 429 rate limit), `ERROR_UNDEFINED` and `INTERVAL_CONCURRENT_REQUESTS_ERROR`. Any other `ApiException` is thrown at once. An interrupt stops the wait with `OnlineSimException` and keeps the thread's interrupt flag.
 
 ```java
 String first = client.numbers().waitCode(tzid, WaitOptions.defaults().keepOpen(true));
@@ -147,6 +147,8 @@ void next(long tzid)
 ```java
 client.numbers().next(tzid);
 ```
+
+Errors: `ApiException` `ERROR_WRONG_TZID` (not an operation of your account), `ERROR_NO_TZID`.
 
 ## close
 
@@ -174,7 +176,7 @@ void ban(long tzid)
 client.numbers().ban(tzid);
 ```
 
-Errors: as `close`.
+Errors: as `close`; `ApiException` with code `"0"` when the operation already has an SMS — nothing is changed then.
 
 ## tariffs
 

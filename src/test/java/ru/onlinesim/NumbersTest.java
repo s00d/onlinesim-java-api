@@ -143,6 +143,36 @@ class NumbersTest {
     }
 
     @Test
+    void banAfterAnSmsSurfacesApiException0WithAReadableMessage() {
+        Fake f = Fake.client().json("{\"response\":\"0\"}");
+        ApiException e =
+                assertThrows(ApiException.class, () -> f.client.numbers().ban(1520));
+        assertEquals("0", e.getCode());
+        assertEquals("Ban not applied: the operation already has an SMS", e.getMessage());
+    }
+
+    @Test
+    void nextAcceptsTheStringTzidAnswerWrongTzidForAForeignOne() {
+        Fake f = Fake.client()
+                .json("{\"tzid\":\"1520\",\"response\":\"1\"}")
+                .json("{\"response\":\"ERROR_WRONG_TZID\"}");
+        f.client.numbers().next(1520);
+        assertEquals(
+                "ERROR_WRONG_TZID",
+                assertThrows(ApiException.class, () -> f.client.numbers().next(1))
+                        .getCode());
+    }
+
+    @Test
+    void stateOneAcceptsAnOperationWithoutResponse() {
+        Fake f = Fake.client()
+                .json("[{\"tzid\":5,\"country\":7,\"service\":\"vkcom\",\"sum\":0.5,\"time\":900,\"form\":\"index\"}]");
+        Operation op = f.client.numbers().stateOne(5);
+        assertEquals(5, op.tzid());
+        assertNull(op.response());
+    }
+
+    @Test
     void closeSurfacesNoCompleteTzid() {
         Fake f = Fake.client().json("{\"response\":\"NO_COMPLETE_TZID\"}");
         assertEquals(

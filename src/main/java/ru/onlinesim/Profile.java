@@ -21,8 +21,8 @@ public final class Profile extends Model {
     private JsonElement numberReject;
     private Integer numberRegion;
     private String webhookUrl;
-    private String number;
-    private Integer country;
+    private Long number;
+    private String country;
     private String createdAt;
 
     private Profile() {}
@@ -55,7 +55,7 @@ public final class Profile extends Model {
         return apikey;
     }
 
-    /** @return {@code true}, or a map of allowed IPs, as sent */
+    /** @return {@code true}, {@code false} (API access disabled in the profile), or a map of allowed IPs, as sent */
     public JsonElement apiAccess() {
         return apiAccess;
     }
@@ -94,11 +94,13 @@ public final class Profile extends Model {
         return webhookUrl;
     }
 
-    public String number() {
+    /** @return the account's phone number, or {@code null} when none is linked */
+    public Long number() {
         return number;
     }
 
-    public Integer country() {
+    /** @return the account's country, or {@code null} */
+    public String country() {
         return country;
     }
 

@@ -7,7 +7,7 @@ Java client for the [OnlineSim](https://onlinesim.io) API: SMS numbers, rent, ac
 Java 11+, `java.net.http` under the hood, Gson as the only dependency.
 
 ```groovy
-implementation 'ru.onlinesim:onlinesim-api:2.1.0'
+implementation 'ru.onlinesim:onlinesim-api:2.1.1'
 ```
 
 ```java
@@ -18,7 +18,7 @@ import ru.onlinesim.OnlineSim;
 OnlineSim client = new OnlineSim(System.getenv("ONLINESIM_KEY"));
 
 Balance b = client.user().balance();
-System.out.println("available: " + (b.balance() - b.zbalance()) + " USD");
+System.out.println("available: " + (b.balance() - Math.max(b.zbalance(), 0)) + " USD");
 
 NumberOrder order = client.numbers().getWithNumber("google", 44);
 System.out.println("enter " + order.number() + " in the app");

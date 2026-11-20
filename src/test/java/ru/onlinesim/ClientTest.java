@@ -57,13 +57,44 @@ class ClientTest {
 
     @Test
     void mapsNoNumberToNoNumberException() {
-        Fake f = Fake.client().json("{\"response\":\"NO_NUMBER\"}").json("{\"response\":\"NO_NUMBER_FOR_FORWARD\"}");
+        Fake f = Fake.client().json("{\"response\":\"NO_NUMBER\"}").json("{\"response\":\"FORWARD_NOT_SUPPORTED\"}");
         NoNumberException e =
                 assertThrows(NoNumberException.class, () -> f.client.numbers().get("google", 44));
         assertInstanceOf(ApiException.class, e);
         assertEquals("NO_NUMBER", e.getCode());
         assertEquals("No numbers available for this service right now", e.getMessage());
-        assertThrows(NoNumberException.class, () -> f.client.numbers().get("google"));
+        // only NO_NUMBER is a NoNumberException
+        ApiException other =
+                assertThrows(ApiException.class, () -> f.client.numbers().get("google"));
+        assertFalse(other instanceof NoNumberException);
+        assertEquals("Number forwarding is no longer available", other.getMessage());
+    }
+
+    @Test
+    void mapsHttp429TryAgainLaterToApiExceptionNotTransport() {
+        Fake f = Fake.client().reply(429, "{\"response\":\"TRY_AGAIN_LATER\"}");
+        ApiException e =
+                assertThrows(ApiException.class, () -> f.client.numbers().state());
+        assertEquals("TRY_AGAIN_LATER", e.getCode());
+        assertEquals("Rate limit exceeded or temporary error, try again later", e.getMessage());
+    }
+
+    @Test
+    void mapsAMissingKeyHttp200WrongKeyToApiException() {
+        Fake f = Fake.client(b -> b.apiKey(null)).json("{\"response\":\"ERROR_WRONG_KEY\"}");
+        ApiException e = assertThrows(ApiException.class, () -> f.client.user().balance());
+        assertEquals("ERROR_WRONG_KEY", e.getCode());
+        assertEquals("Wrong or missing API key", e.getMessage());
+    }
+
+    @Test
+    void theMessageTableFollowsTheSpec() {
+        for (String dead :
+                new String[] {"ERROR_NO_KEY", "NO_NUMBER_FOR_FORWARD", "ACCOUNT_IDENTIFICATION_REQUIRED", "API_DISABLED"
+                }) assertFalse(ApiException.ERROR_MESSAGES.containsKey(dead), dead);
+        for (String added :
+                new String[] {"0", "ACCOUNT_CLEANED", "USER_NOT_ACTIVATED", "ERROR_UNDEFINED", "FORWARD_NOT_SUPPORTED"})
+            assertTrue(ApiException.ERROR_MESSAGES.containsKey(added), added);
     }
 
     @Test
@@ -71,7 +102,7 @@ class ClientTest {
         Fake f = Fake.client().reply(456, "{\"response\":\"ERROR_WRONG_KEY\"}");
         ApiException e = assertThrows(ApiException.class, () -> f.client.user().balance());
         assertEquals("ERROR_WRONG_KEY", e.getCode());
-        assertEquals("Wrong API key", e.getMessage());
+        assertEquals("Wrong or missing API key", e.getMessage());
     }
 
     @Test

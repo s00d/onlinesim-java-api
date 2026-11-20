@@ -9,18 +9,18 @@ Java 11 or newer. HTTP goes through the JDK's `java.net.http.HttpClient`; the on
 
 ::code-group
 ```groovy [Gradle]
-implementation 'ru.onlinesim:onlinesim-api:2.1.0'
+implementation 'ru.onlinesim:onlinesim-api:2.1.1'
 ```
 
 ```kotlin [Gradle (Kotlin)]
-implementation("ru.onlinesim:onlinesim-api:2.1.0")
+implementation("ru.onlinesim:onlinesim-api:2.1.1")
 ```
 
 ```xml [Maven]
 <dependency>
   <groupId>ru.onlinesim</groupId>
   <artifactId>onlinesim-api</artifactId>
-  <version>2.1.0</version>
+  <version>2.1.1</version>
 </dependency>
 ```
 ::
@@ -39,7 +39,7 @@ public class QuickStart {
     OnlineSim client = new OnlineSim(System.getenv("ONLINESIM_KEY"));
 
     Balance balance = client.user().balance();
-    System.out.println("available: " + (balance.balance() - balance.zbalance()) + " USD");
+    System.out.println("available: " + (balance.balance() - Math.max(balance.zbalance(), 0)) + " USD");
 
     NumberOrder order = client.numbers().getWithNumber("google", 44);
     System.out.println("enter " + order.number() + " in the app");
@@ -77,7 +77,7 @@ OnlineSim client = OnlineSim.builder()
 
 Sections: [`client.numbers()`](/numbers), [`client.rent()`](/rent), [`client.user()`](/user), [`client.free()`](/free). Webhook bodies are parsed by the static [`OnlineSim.parseWebhook`](/webhooks).
 
-Durations (`timeout`, the `waitCode` interval) are `java.time.Duration`. Response objects are immutable, with record-style accessors named after the server's fields (`webhook_url` → `webhookUrl()`). Two things are normalised: money that the server sends as a decimal string (`balance`, rent `sum`) becomes a `double`, and maps that arrive as an empty PHP array `[]` become empty maps. Collections are never `null`.
+Durations (`timeout`, the `waitCode` interval) are `java.time.Duration`. Response objects are immutable, with record-style accessors named after the server's fields (`webhook_url` → `webhookUrl()`). Two things are normalised: money that the server sends as a decimal string (`balance`, rent `sum` in `rent().state()`) becomes a `double`, and maps that arrive as an empty PHP array `[]` become empty maps. `paymentHistory().paylist()` keeps a paylist that arrives as a JSON array (ids 0, 1, 2…), keyed by index. Collections are never `null`.
 
 A proxy or a custom TLS setup goes through your own `HttpClient`:
 
@@ -100,8 +100,8 @@ Every exception is unchecked and extends `OnlineSimException`.
 
 | Class | When | Fields |
 |---|---|---|
-| `ApiException` | The API answered with an error code (also a wrong key, HTTP 456). | `getCode()`, `getMessage()` |
-| `NoNumberException` | `NO_NUMBER` / `NO_NUMBER_FOR_FORWARD`: no number right now. Subclass of `ApiException`. | `getCode()`, `getMessage()` |
+| `ApiException` | The API answered with an error code (also a wrong key, HTTP 456, and the rate limit, HTTP 429 `TRY_AGAIN_LATER`). | `getCode()`, `getMessage()` |
+| `NoNumberException` | `NO_NUMBER`: no number right now. Subclass of `ApiException`. | `getCode()`, `getMessage()` |
 | `TransportException` | Network error, request timeout, or a body that is not JSON. | `getStatus()` (`null` without a response), `getBody()` (first 500 chars) |
 | `WaitTimeoutException` | `waitCode` got no code within its `timeout`. | — |
 

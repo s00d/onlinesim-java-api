@@ -183,7 +183,7 @@ public final class MockOnlineSim {
         state.balance = MockState.mills(usd);
     }
 
-    /** @return total balance, USD, including the part frozen by open operations (as {@code getBalance} reports it) */
+    /** @return total balance, USD, including the part frozen by open operations and unconfirmed rents (as {@code getBalance} reports it) */
     public synchronized double balance() {
         return MockState.usd(state.balance);
     }
@@ -232,10 +232,12 @@ public final class MockOnlineSim {
 
         BiFunction<MockState, MockRequest, JsonElement> handler = Handlers.ROUTES.get(req.path());
         if (handler == null) return html(404, "Not Found");
-        if (!Handlers.PUBLIC_PATHS.contains(req.path())
-                && !("Bearer " + state.apiKey).equals(header(request, "Authorization"))) {
+        // A wrong key is HTTP 456 (public endpoints check a sent key too); no key at all is HTTP 200.
+        String auth = header(request, "Authorization");
+        if (auth != null && !auth.equals("Bearer " + state.apiKey))
             return json(Handlers.obj("response", "ERROR_WRONG_KEY"), 456);
-        }
+        if (auth == null && !Handlers.PUBLIC_PATHS.contains(req.path()))
+            return json(Handlers.obj("response", "ERROR_WRONG_KEY"), 200);
         return json(handler.apply(state, req), 200);
     }
 

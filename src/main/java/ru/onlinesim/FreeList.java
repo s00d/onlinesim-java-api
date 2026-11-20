@@ -37,10 +37,12 @@ public final class FreeList extends Model {
             return country;
         }
 
+        /** @return localised country name, or {@code null} */
         public String countryText() {
             return countryText;
         }
 
+        /** @return country slug, or {@code null} */
         public String countryOriginal() {
             return countryOriginal;
         }
@@ -60,6 +62,7 @@ public final class FreeList extends Model {
             return country;
         }
 
+        /** @return country slug, or {@code null} */
         public String countryOriginal() {
             return countryOriginal;
         }

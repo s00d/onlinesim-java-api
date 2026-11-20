@@ -5,8 +5,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -15,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.regex.Pattern;
 
 /**
  * The mock's routes: endpoint path (relative to {@code /api/}) → handler. A handler gets the state and the request
@@ -70,6 +69,12 @@ final class Handlers {
         if (v instanceof Number) return new JsonPrimitive((Number) v);
         if (v instanceof Boolean) return new JsonPrimitive((Boolean) v);
         return new JsonPrimitive(v.toString());
+    }
+
+    private static JsonArray array(Object... items) {
+        JsonArray a = new JsonArray();
+        for (Object item : items) a.add(json(item));
+        return a;
     }
 
     private static JsonObject error(String code) {
@@ -215,7 +220,10 @@ final class Handlers {
                 "number", number,
                 "country", country,
                 "time", MockState.OPERATION_TIME,
-                "service", service);
+                "service", service,
+                "title", service,
+                "response_text", "Waiting for SMS",
+                "guard_interval_remaining_seconds", state.guardInterval);
     }
 
     private static JsonElement getState(MockState state, MockRequest req) {
@@ -235,17 +243,19 @@ final class Handlers {
 
     private static JsonElement setOperationRevise(MockState state, MockRequest req) {
         long tzid = integer(req, "tzid", 0);
+        if (tzid == 0) return error("ERROR_NO_TZID");
         MockOperation op = state.operations.get(tzid);
-        // Always succeeds, even for unknown tzids, like the backend.
-        if (op != null && !op.status.equals("TZ_OVER_OK")) {
+        if (op == null) return error("ERROR_WRONG_TZID");
+        if (!op.status.equals("TZ_OVER_OK")) {
             op.cursor = op.messages.size();
             op.status = "TZ_NUM_WAIT";
         }
-        return obj("response", 1, "tzid", tzid);
+        return obj("tzid", String.valueOf(tzid), "response", "1");
     }
 
     private static JsonElement setOperationOk(MockState state, MockRequest req) {
         long tzid = integer(req, "tzid", 0);
+        if (tzid == 0) return error("ERROR_NO_TZID");
         MockOperation op = state.operations.get(tzid);
         if (op == null || op.status.equals("TZ_OVER_OK")) return error("ERROR_WRONG_TZID");
         boolean received = !op.messages.isEmpty();
@@ -319,10 +329,16 @@ final class Handlers {
         return o;
     }
 
-    private static JsonObject rentItem(MockState state, MockRent rent, MockRequest req) {
+    /**
+     * A rent as the backend sends it. {@code sum} is a number in getRentNum/extendRentState and a 2-decimal string in
+     * getRentState ({@code stringSum}). An unconfirmed rent ({@code status} 0) waits 20 minutes for its first SMS.
+     */
+    private static JsonObject rentItem(MockState state, MockRent rent, MockRequest req, boolean stringSum) {
         MockRentTariff tariff = state.rentTariffs.get(rent.country);
         boolean extendable = rent.extension && tariff != null && tariff.extend();
+        boolean confirmed = rent.status == 1;
         long start = rent.tzid;
+        long minutes = confirmed ? rent.days * 24L * 60 : MockState.RENT_FIRST_SMS_MINUTES;
         JsonArray messages = new JsonArray();
         for (int i = rent.messages.size() - 1; i >= 0; i--) { // newest first
             MockSms m = rent.messages.get(i);
@@ -330,12 +346,13 @@ final class Handlers {
                     "id", m.id(),
                     "service", m.service(),
                     "text", m.text(),
-                    "code", m.code() != null ? m.code() : "",
+                    // A notice about a prohibited sender carries the integer 0, other SMS a string ("" without a code).
+                    "code", MockState.NOTIFY.equals(m.service()) ? (Object) 0 : m.code() != null ? m.code() : "",
                     "created_at", m.createdAt()));
         }
         JsonObject item = obj(
                 "status",
-                1,
+                rent.status,
                 "extension",
                 rent.extension ? 1 : 0,
                 "messages",
@@ -343,56 +360,62 @@ final class Handlers {
                 "webhook_url",
                 state.webhookUrl,
                 "sum",
-                MockState.decimal(rent.sumMills, 2),
+                stringSum ? MockState.decimal(rent.sumMills, 2) : (Object) MockState.usd(rent.sumMills),
                 "country",
                 rent.country,
                 "start_time",
                 MockState.stamp(start),
                 "stop_time",
-                MockState.stamp(start + rent.days * 86_400L),
+                MockState.stamp(start + minutes * 60),
                 "checked_time",
                 MockState.stamp(start),
                 "number",
                 rent.number,
                 "days_autoextend",
-                0,
+                rent.initialDays,
                 "rent",
-                1,
+                rent.days,
                 "tzid",
                 rent.tzid,
                 "time",
-                rent.days * 24 * 60,
+                minutes,
                 "days",
-                rent.days,
+                confirmed ? rent.days : 0,
                 "hours",
-                rent.days * 24,
+                confirmed ? rent.days * 24 : 0,
                 "extend",
                 extendable ? daysMap(tariff.days()) : new JsonArray(),
                 "checked",
-                true,
+                confirmed,
                 "reload",
-                null,
+                rent.country == 7 ? 0 : null,
                 "day_extend",
                 extendable ? tariff.days().getOrDefault(1, 0.0) : 0,
                 "m_ext",
                 false,
                 "freeze",
                 false);
-        if (has(req, "number")) item.addProperty("time_seconds", rent.days * 86_400L);
+        if (has(req, "number")) {
+            item.addProperty("time_seconds", minutes * 60);
+            item.addProperty(
+                    "guard_interval_remaining_seconds",
+                    !confirmed && rent.messages.isEmpty() ? state.guardInterval : 0);
+        }
         return item;
     }
 
     private static JsonElement getRentNum(MockState state, MockRequest req) {
         int country = int32(req, "country", 7);
         MockRentTariff tariff = state.rentTariffs.get(country);
-        if (tariff == null) return error("NO_COUNTRY");
+        if (tariff == null) return error("UNDEFINED_COUNTRY");
         int days = int32(req, "days", 1);
         Double price = tariff.days().get(days);
         if (price == null) return error("UNDEFINED_DAYS");
         long cost = MockState.mills(price);
         if (state.available() < cost) return error("WARNING_LOW_BALANCE");
         long tzid = state.nextId();
-        state.balance -= cost;
+        // Reserved, not charged: the first SMS that is not `notify` confirms the rent and charges it.
+        state.frozen += cost;
         // `extension` defaults to 1 on the server; `0` makes the rent non-extendable for good.
         MockRent rent = new MockRent(
                 tzid,
@@ -402,7 +425,7 @@ final class Handlers {
                 cost,
                 !"0".equals(req.query().get("extension")));
         state.rents.put(tzid, rent);
-        return obj("response", 1, "item", rentItem(state, rent, req));
+        return obj("response", 1, "item", rentItem(state, rent, req, false));
     }
 
     private static JsonElement getRentState(MockState state, MockRequest req) {
@@ -413,29 +436,40 @@ final class Handlers {
         } else rents.addAll(state.rents.values());
         for (MockRent rent : rents) state.poll(rent.tzid);
         JsonArray list = new JsonArray();
-        for (MockRent rent : rents) list.add(rentItem(state, rent, req));
+        for (MockRent rent : rents) list.add(rentItem(state, rent, req, true));
         return obj("response", 1, "list", list);
     }
 
     private static JsonElement extendRentState(MockState state, MockRequest req) {
+        // Every refusal is TRY_AGAIN_LATER, like the backend: unknown tzid, unconfirmed rent, not extendable, unknown
+        // days.
         MockRent rent = state.rents.get(integer(req, "tzid", 0));
-        if (rent == null) return error("ERROR_WRONG_TZID");
-        MockRentTariff tariff = state.rentTariffs.get(rent.country);
-        if (!rent.extension || tariff == null || !tariff.extend()) return error("TRY_AGAIN_LATER");
+        MockRentTariff tariff = rent != null ? state.rentTariffs.get(rent.country) : null;
+        if (rent == null || tariff == null || rent.status != 1 || !rent.extension || !tariff.extend())
+            return error("TRY_AGAIN_LATER");
         int days = int32(req, "days", 1);
         Double price = tariff.days().get(days);
-        if (price == null) return error("UNDEFINED_DAYS");
+        if (price == null) return error("TRY_AGAIN_LATER");
         long cost = MockState.mills(price);
         if (state.available() < cost) return error("WARNING_LOW_BALANCE");
         state.balance -= cost;
         rent.days += days;
         rent.sumMills += cost;
-        return obj("response", 1, "item", rentItem(state, rent, req));
+        return obj("response", 1, "item", rentItem(state, rent, req, false));
     }
 
     private static JsonElement closeRentNum(MockState state, MockRequest req) {
         long tzid = integer(req, "tzid", 0);
-        if (state.rents.remove(tzid) == null) return error("ERROR_WRONG_TZID");
+        MockRent rent = state.rents.get(tzid);
+        if (rent == null) return error("ERROR_NO_OPERATIONS");
+        if (rent.status == 0) {
+            // `guardInterval` stands in for the backend's first 120 s, during which a rent without any SMS stays open.
+            if (rent.messages.isEmpty() && state.guardInterval > 0) return error("NO_COMPLETE_TZID");
+            // Unconfirmed (no SMS or only `notify`): the reservation is released.
+            state.frozen -= rent.sumMills;
+        }
+        // A confirmed rent closes without a refund.
+        state.rents.remove(tzid);
         state.unschedule(tzid);
         return obj("response", "1");
     }
@@ -550,16 +584,11 @@ final class Handlers {
         return obj("response", "1", "profile", profile);
     }
 
-    private static boolean isHttpUrl(String value) {
-        try {
-            URI uri = new URI(value);
-            String scheme = uri.getScheme();
-            return ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
-                    && uri.getHost() != null
-                    && !uri.getHost().isEmpty();
-        } catch (URISyntaxException e) {
-            return false;
-        }
+    /** The backend accepts any {@code scheme://…} URL. */
+    private static final Pattern URL = Pattern.compile("(?i)[a-z][a-z0-9+.-]*://\\S+");
+
+    private static boolean isUrl(String value) {
+        return URL.matcher(value).matches();
     }
 
     private static JsonElement profile(MockState state, MockRequest req) {
@@ -569,8 +598,7 @@ final class Handlers {
         if (!req.method().equals("POST") || profile == null || !profile.isJsonObject()) return error("ERROR_PARAMS");
         JsonElement url = profile.getAsJsonObject().get("webhook_url");
         boolean isNull = url == null || url.isJsonNull();
-        if (!isNull
-                && !(url.isJsonPrimitive() && url.getAsJsonPrimitive().isString() && isHttpUrl(url.getAsString()))) {
+        if (!isNull && !(url.isJsonPrimitive() && url.getAsJsonPrimitive().isString() && isUrl(url.getAsString()))) {
             JsonArray messages = new JsonArray();
             messages.add("The webhook url must be a valid URL.");
             return obj("response", obj("webhook_url", messages));
@@ -603,26 +631,41 @@ final class Handlers {
                 "paylist",
                 new JsonArray(),
                 "domains",
-                new JsonArray(),
+                array("onlinesim.io"),
+                "forms",
+                obj("1", "Card"),
                 "currency",
-                obj("USD", 1));
+                obj("USD", 1),
+                "buttons",
+                obj("USD", array(5, 10, 20)));
     }
 
     // ----- free -----
 
-    /** Fixed free numbers: country → [name, text, number, (sender, text)...]. */
-    private static final Map<Integer, FreeCountry> FREE = new java.util.TreeMap<>(Map.of(
-            44,
-            new FreeCountry(
-                    "united_kingdom",
-                    "United Kingdom",
-                    "7459608320",
-                    "Amazon",
-                    "Amazon: Use 195895 to reset your password.",
-                    "Microsoft",
-                    "Microsoft access code: 2991"),
-            7,
-            new FreeCountry("russia", "Russia", "9001234567", "Telegram", "Telegram code: 51423")));
+    /** {@code ignore} of getFreeList: a note about prohibited services and their ids. */
+    private static final String FREE_IGNORE = "<p>Messages from these services are not shown:</p><p>1,2,3</p>";
+
+    /** Fixed free numbers: country → [name, text, number, (sender, text)...]. Country 44 first, like the backend. */
+    private static final Map<Integer, FreeCountry> FREE = new LinkedHashMap<>();
+
+    static {
+        FREE.put(
+                44,
+                new FreeCountry(
+                        "united_kingdom",
+                        "United Kingdom",
+                        "7459608320",
+                        "Amazon",
+                        "Amazon: Use 195895 to reset your password.",
+                        "Microsoft",
+                        "Microsoft access code: 2991"));
+        FREE.put(7, new FreeCountry("russia", "Russia", "9001234567", "Telegram", "Telegram code: 51423"));
+    }
+
+    /** {@code YYYY-MM-DDTHH:MM:SS.000000Z}, the ISO-8601 form getFreeList sends. */
+    private static String iso(long seconds) {
+        return MockState.stamp(seconds).replace(' ', 'T') + ".000000Z";
+    }
 
     private static final class FreeCountry {
         final String name;
@@ -679,7 +722,7 @@ final class Handlers {
                     "my_number",
                     number,
                     "created_at",
-                    MockState.stamp(i),
+                    iso(i),
                     "data_humans",
                     "1 day ago",
                     "code",
@@ -687,9 +730,22 @@ final class Handlers {
         }
         JsonArray countries = new JsonArray();
         FREE.forEach((c, d) -> countries.add(obj("country", c, "country_text", d.text, "country_original", d.name)));
-        JsonObject page = paginate(messages, int32(req, "page", 1), int32(req, "count", 10), "getFreeList");
+        int count = Math.min(500, Math.max(10, int32(req, "count", 10)));
+        JsonObject page = paginate(messages, Math.max(1, int32(req, "page", 1)), count, "getFreeList");
         page.addProperty("number", number);
         page.addProperty("country", country);
-        return obj("response", 1, "countries", countries, "numbers", numbers, "messages", page);
+        return obj(
+                "response",
+                1,
+                "countries",
+                countries,
+                "numbers",
+                numbers,
+                "messages",
+                page,
+                "ignore",
+                FREE_IGNORE,
+                "content",
+                null);
     }
 }

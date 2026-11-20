@@ -149,7 +149,8 @@ public final class OnlineSim {
         }
         if (data == null)
             throw new TransportException("HTTP " + status + ": response is not JSON", status, excerpt, null);
-        // The body is checked before the status: a wrong key is HTTP 456 with {"response":"ERROR_WRONG_KEY"}.
+        // The body is checked before the status: a wrong key is HTTP 456 with {"response":"ERROR_WRONG_KEY"},
+        // the rate limit HTTP 429 with {"response":"TRY_AGAIN_LATER"}.
         if (data.isJsonObject() && data.getAsJsonObject().has("response")) return unwrap(data.getAsJsonObject());
         if (status < 200 || status >= 300) throw new TransportException("HTTP " + status, status, excerpt, null);
         return data;
@@ -179,8 +180,7 @@ public final class OnlineSim {
         // Debug backends echo the code as `message`; prefer the readable fallback then.
         String message = Json.string(data.get("message"));
         if (code.equals(message)) message = null;
-        if (code.equals("NO_NUMBER") || code.equals("NO_NUMBER_FOR_FORWARD"))
-            throw new NoNumberException(code, message);
+        if (code.equals("NO_NUMBER")) throw new NoNumberException(code, message);
         throw new ApiException(code, message);
     }
 
